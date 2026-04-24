@@ -202,11 +202,13 @@ class Lexer:
         return ch
 
     def tokenize_line(self, line_text, line_number):
-        tokens = []
+        saved_source = self.source
+        self.source = line_text
         self.pos = 0
         self.column = 1
+        tokens = []
 
-        while self.pos < len(line_text):
+        while self.pos < len(self.source):
             ch = self.peek()
 
             if ch in (' ', '\t'):
@@ -235,7 +237,7 @@ class Lexer:
                 start = self.pos
                 self.advance()
                 num_text = mapped
-                while self.pos < len(line_text):
+                while self.pos < len(self.source):
                     nc = self.peek()
                     nm = self.map_chinese_punct(nc)
                     if nm.isdigit():
@@ -270,7 +272,7 @@ class Lexer:
             if mapped.isalpha() or mapped == '_':
                 word = mapped
                 self.advance()
-                while self.pos < len(line_text):
+                while self.pos < len(self.source):
                     nc = self.peek()
                     nm = self.map_chinese_punct(nc)
                     if nm.isalnum() or nm == '_':
@@ -279,10 +281,7 @@ class Lexer:
                     else:
                         break
                 if word in KEYWORDS:
-                    if word in ('true', 'false'):
-                        tokens.append(Token(TOKEN_KEYWORD, word, line_number, col))
-                    else:
-                        tokens.append(Token(TOKEN_KEYWORD, word, line_number, col))
+                    tokens.append(Token(TOKEN_KEYWORD, word, line_number, col))
                 else:
                     tokens.append(Token(TOKEN_IDENTIFIER, word, line_number, col))
                 continue
@@ -456,6 +455,7 @@ class Lexer:
 
             self.advance()
 
+        self.source = saved_source
         return tokens
 
     def tokenize(self):

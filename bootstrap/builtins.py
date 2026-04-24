@@ -5,7 +5,7 @@ from .environment import (
 
 
 def meow_print(*args):
-    output = ' '.join(str(a) for a in args)
+    output = ' '.join('null' if a is NULL_VALUE else str(a) for a in args)
     print(output)
     return NULL_VALUE
 

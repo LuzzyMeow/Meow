@@ -1,0 +1,111 @@
+print "=== 函数测试 ==="
+
+print "--- 1. 基本函数定义和调用 ---"
+def greet
+    print "Hello from greet!"
+greet
+greet
+
+print "--- 2. 带参数的函数 ---"
+def say_hello name
+    print "Hello, " ++ name ++ "!"
+say_hello "Meow"
+say_hello "World"
+
+def add a b
+    print a + b
+add 3 4
+add 10 20
+
+print "--- 3. 返回值 ---"
+def square x
+    return x * x
+print square 5
+print square square 3
+
+def max2 a b
+    if a > b
+        return a
+    else
+        return b
+print max2 10 20
+print max2 30 5
+
+print "--- 4. 没有返回值的函数返回 null ---"
+def noop
+    null
+print noop()
+
+print "--- 5. 递归 ---"
+def factorial n
+    if n <= 1
+        return 1
+    return n * factorial(n - 1)
+print factorial 5
+print factorial 6
+
+def fibonacci n
+    if n <= 1
+        return n
+    return fibonacci(n - 1) + fibonacci(n - 2)
+print fibonacci 10
+
+print "--- 6. Lambda 函数 ---"
+double = fn x -- x * 2
+print double 5
+print double double 5
+
+adder = fn a b -- a + b
+print adder 10 20
+
+print "--- 7. Lambda 作为参数 ---"
+def apply_twice f v
+    return f f v
+add3 = fn x -- x + 3
+print apply_twice(add3, 7)
+
+print "--- 8. 闭包 ---"
+def make_counter
+    count = 0
+    def inc
+        count = count + 1
+        return count
+    return inc
+counter = make_counter()
+print counter()
+print counter()
+print counter()
+
+def make_adder x
+    return fn y -- x + y
+add5 = make_adder 5
+print add5 10
+print add5 20
+
+print "--- 9. 嵌套函数 ---"
+def outer x
+    def inner y
+        return x + y
+    return inner 100
+print outer 1
+print outer 50
+
+print "--- 10. 多参数 lambda ---"
+sum3 = fn a b c -- a + b + c
+print sum3 1 2 3
+
+print "--- 11. 复合测试 ---"
+def is_even n
+    if n % 2 == 0
+        return true
+    return false
+
+i = 1
+while i <= 10
+    if is_even i
+        print i ++ " is even"
+    else
+        print i ++ " is odd"
+    i = i + 1
+
+print "--- 函数测试完成 ---"

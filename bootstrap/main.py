@@ -37,6 +37,8 @@ def run_source(source, filename='<stdin>'):
         sys.exit(1)
     except MeowRuntimeError as e:
         print(f"运行时错误 ({filename}): {e}")
+        if os.environ.get('MEOW_DEBUG'):
+            traceback.print_exc()
         sys.exit(1)
     except Exception as e:
         print(f"内部错误 ({filename}): {e}")

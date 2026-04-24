@@ -1,173 +1,111 @@
-# 🐱 Meow Language
+# (=｀ェ´=) Meow Language
 
-**用最少的语法，做最多的事**
+<div align="center">
+
+**一门语言，连接一切**
 
 [![Language](https://img.shields.io/badge/Language-Meow-FF6B6B?style=for-the-badge&logo=code&logoColor=white)](https://github.com/your-username/Meow)
 [![Status](https://img.shields.io/badge/Status-Alpha-yellow?style=for-the-badge)](https://github.com/your-username/Meow)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 
+</div>
+
+> **本项目尚在开发中，所有功能均未完整实现。本文档展示的语法特性为设计规范，当前种子解释器仅支持最基础语法。请勿用于生产环境。**
 
 ---
 
-## 📖 项目简介
+## 语言生态正在窒息
 
-Meow 是一门**极简通用高级编程语言**。它的语法比 Python 更简洁，功能却对标 Python 与 Java 的完全体，核心创新在于**跨语言互操作**——你可以直接在 Meow 代码里导入并使用来自 Python、Java、JavaScript、C/C++ 等任何语言的库，彻底打破语言生态壁垒。
+### 一个致命的矛盾
 
-> **愿景**：成为一门"用最少的语法做最多的事"的通用语言——比 Python 更简单，比 Java 更完整，可以调用任何语言已有的库。
+| 你想要 | 现实 |
+|--------|------|
+| Python 的数据科学生态 | 但它的后端项目会因 GIL 和动态类型变得难以维护 |
+| Java 的工程化能力 | 但它的语法臃肿，开发效率低下 |
+| Node.js 的全栈生态 | 但它的回调地狱和包管理混乱让人头疼 |
+| Rust 的性能与安全 | 但它的学习曲线陡峭到劝退 |
+| 一个团队统一技术栈 | 但每个需求都要引入新语言、新工具链 |
 
-### ✨ 核心特性
+你必须在 **"易学"** 和 **"强大"** 之间站队。选择了简洁就等于放弃了生态，选择了生态就等于锁死在一门语言里。
 
-| 特性 | 描述 |
-|------|------|
-| 🎯 **极简语法** | 缩进即结构，一行一条语句，索引从 1 开始符合人类直觉 |
-| 🌐 **跨语言互操作** | 原生支持 Python、Java、JavaScript、C/C++ 等语言库的直接调用 |
-| 🔤 **中英标点等价** | 中文全角标点与英文标点完全等价，无需切换输入法 |
-| 🧩 **统一数据结构** | 数组、字典、集合统一为"列表"一个概念 |
-| 🚀 **高级特性** | 面向对象、泛型、异步、模式匹配、元编程、装饰器一应俱全 |
-| 🔄 **自举能力** | 用 Python 编写种子解释器，最终用 Meow 自身重写编译器 |
+### 这不是你的错，是语言设计的根本缺陷
 
-### 🎯 项目定位
+所有现有语言的设计原点都是 **打造封闭王国**。每个语言都有一套：
 
-- **对个人开发者**：入门门槛低于 Python，语法直觉化
-- **对企业**：一门语言覆盖所有开发场景，降低技术栈维护成本
-- **对生态**：不做孤岛，而是所有语言生态的"连接器"
+- 自己的运行时
+- 自己的 FFI 边界
+- 自己的包管理器
+- 自己的生态孤岛
 
----
+当你需要 Python 的机器学习库时，你**必须**写 Python。当你的项目需要高并发后端时，你**必须**引入 Go 或 Java。结果是：**一个项目三四种语言，团队被迫分裂成多个技术部落。**
 
-## 🚀 快速开始
-
-### 环境要求
-
-- Python 3.10 或更高版本
-
-### 安装与运行
-
-```bash
-# 克隆仓库
-git clone https://github.com/your-username/Meow.git
-cd Meow
-
-# 运行第一个 Meow 程序
-python bootstrap/main.py tests/hello.meow
-```
-
-### 你的第一行 Meow 代码
-
-创建 `hello.meow` 文件：
-
-```
-print "你好, 世界!"
-```
-
-运行它：
-
-```bash
-python bootstrap/main.py hello.meow
-```
-
-输出：
-
-```
-你好, 世界!
-```
-
-### 🎮 在线体验（即将推出）
-
-我们正在构建在线 Playground，让你无需安装即可体验 Meow。
+> 语言之间互相调用不是技术问题，而是**设计问题**。
 
 ---
 
-## 📚 语言速览
+## (^•ω•^) Meow：生态孤岛的终结者
 
-### 变量与表达式
+Meow 不是又一种新语言——它是**语言间的桥梁**。
+
+### 核心理念
+
+> **不做孤岛，做连接器。**
+
+Meow 的底层设计目标只有一个：**允许开发者在同一份代码里，自由调用任何语言编写的库，仿佛它们就是 Meow 的原生功能。**
+
+### 零代码展示：跨语言在呼吸之间
 
 ```
-# 直接赋值，无需声明类型
+// 引用 Python 的 NumPy 做矩阵运算
+import python
+{
+import numpy as np
+a = np.array([[1, 2], [3, 4]])
+b = np.array([[5, 6], [7, 8]])
+result = np.dot(a, b)
+}.python
+print result    // [[19 22], [43 50]]
+
+// 引用 Java 的 Apache Commons 做文件处理
+import java
+{
+import org.apache.commons.io.FileUtils;
+FileUtils.copyFile(new File("src.txt"), new File("dst.txt"));
+}.java
+
+// 引用 JavaScript 的 moment.js 处理时间
+import javascript
+let moment = require("moment")
+console.log(moment().format("YYYY-MM-DD"))
+.javascript
+
+// 引用 C++ 的 OpenCV 处理图像
+import cpp
+{
+#include <opencv2/opencv.hpp>
+cv::Mat img = cv::imread("photo.jpg");
+}.cpp
+```
+
+> 你不是在"嵌入"其他语言——你是在 **Meow 中直接使用它们**，像使用 Meow 标准库一样自然。
+
+### 常规语法
+
+当然，Meow 本身也是一门合格的通用编程语言：
+
+```meow
+// 变量
 name = "Alice"
 age = 30
-score = 95.5
-```
 
-### 字符串内嵌变量
-
-```
-name = "世界"
-print "你好, /name"          # 输出: 你好, 世界
-print "1 + 1 = /(1 + 1)"    # 输出: 1 + 1 = 2
-```
-
-### 控制流
-
-```
-score = 85
-
-if score >= 90
-    print "优秀"
-elif score >= 60
-    print "及格"
-else
-    print "不及格"
-```
-
-### 循环
-
-```
-# for 循环
-for fruit in ["苹果", "香蕉", "橙子"]
-    print fruit
-
-# while 循环
-count = 1
-while count <= 5
-    print count
-    count += 1
-```
-
-### 函数
-
-```
-# 定义函数
+// 函数
 def greet name
-    print "你好, /name"
+    print "你好，/name！"
 
-# 调用函数
-greet "小明"
+greet name
 
-# 带返回值
-def add a, b
-    return a + b
-
-result = add 3, 5    # result = 8
-
-# 匿名函数
-double = fn x -- x * 2
-double 5    # 10
-```
-
-### 列表：万能数据容器
-
-```
-# 当数组用
-numbers = [10, 20, 30]
-
-# 当字典（键值对）用
-user = ["name": "Alice", "age": 30]
-
-# 冻结列表（不可变）
-point = f.[0, 0]
-
-# 列表运算
-a = [1, 2, 3]
-b = [2, 3, 4]
-a ++ b     # 并集: [1, 2, 3, 4]
-a && b     # 交集: [2, 3]
-a -- b     # 差集: [1]
-```
-
-### 类与对象
-
-```
+// 类
 class Student
     def init self, name, score
         self.name = name
@@ -180,40 +118,131 @@ s1 = Student "张三", 95
 s1.show
 ```
 
-### 跨语言互操作
+> 语法极简——缩进即结构，一行一条语句，索引从 1 开始。更多的语法细节请参考 [基础语法设计规范](docs/Meow%20语言基础语法设计与规范.md)。
+
+---
+
+## 架构：Meow 如何打通语言壁垒
 
 ```
-# 直接调用 Python 库
+                  ┌──────────────────────┐
+                  │     Meow 源代码        │
+                  └────────┬─────────────┘
+                           │
+                  ┌────────▼─────────────┐
+                  │    词法/语法分析       │
+                  │  (解析为统一 AST)      │
+                  └────────┬─────────────┘
+                           │
+                  ┌────────▼─────────────┐
+                  │    跨语言调度器        │
+                  │                      │
+                  │  ┌────┬────┬────┬──┐  │
+                  │  │Python│Java│JS │C++│  │
+                  │  └────┴────┴────┴──┘  │
+                  │  每个语言块派发到       │
+                  │  对应的运行时沙箱       │
+                  └──────────────────────┘
+```
+
+### 核心机制
+
+| 组件 | 职责 |
+|------|------|
+| **统一 AST** | 无论来源语言，所有代码段解析为 Meow 的统一抽象语法树 |
+| **跨语言调度器** | 识别代码块的目标语言，自动选择对应运行时进行编译/解释 |
+| **数据转换层** | 在不同语言的数据类型之间自动做无损转换（列表↔数组、字典↔HashMap 等） |
+| **生命周期管理** | 跨语言调用的内存分配、垃圾回收、异常传播统一托管 |
+
+### 与其他方案的对比
+
+| 方案 | 跨语言调用体验 | 需要额外学习 | 性能损耗 |
+|------|-------------|------------|---------|
+| **Meow** | 同一文件内直接调用 | 零额外学习 | 中（数据转换层） |
+| gRPC / Thrift | 服务间 RPC | 学 IDL + SDK | 低（网络开销） |
+| FFI (JNI, CFFI) | 绑定层代码繁琐 | 学 FFI 规则 | 低 |
+| WebAssembly | 仅限 WASM 生态 | 学 WASM 接口 | 中 |
+| **Polyglot (GraalVM)** | 同 VM 内调用 | 学 Polyglot API | 低 |
+
+---
+
+## 使用场景
+
+### 场景一：数据科学家只需一门语言
+
+```meow
+// Python 生态用于数据预处理
 import python
 {
-import matplotlib.pyplot as plt
-plt.plot([1, 2, 3], [4, 5, 1])
-plt.show()
+import pandas as pd
+df = pd.read_csv("sales.csv")
+df["total"] = df["price"] * df["quantity"]
+processed = df.to_dict("records")
 }.python
 
-# 封装为 Meow 函数
-def py_sort arr
-    import python
-    {
-    return sorted(arr)
-    }.python
+// 用 Meow 写业务逻辑
+def calculate_revenue records
+    total = 0
+    for r in records
+        total += r["total"]
+    return total
 
-sorted_list = py_sort [3, 1, 2]
-print sorted_list   # [1, 2, 3]
+print "总收入：" /calculate_revenue processed
+
+// 用 Java 写高性能报表导出
+import java
+{
+// 使用 Apache POI 生成 Excel 报表
+}.java
 ```
 
-### 中文标点完全支持
+### 场景二：全栈开发者只维护一份代码
 
-```
-# 中英文标点完全等价，自由混用
-name = "世界"
-print "你好，/name！"        # 全角逗号、感叹号
-print "你的名字是："/name    # 全角冒号
+```meow
+// 前端渲染 - 调用 JS
+import javascript
+{
+document.getElementById("app").innerHTML = "<h1>Hello Meow</h1>"
+}.javascript
+
+// 后端逻辑 - 用 Meow 自身
+def handle_request req
+    return ["status": 200, "body": "OK"]
+
+// 数据存储 - 调用 Java JDBC
+import java
+{
+Connection conn = DriverManager.getConnection(url, user, pass);
+Statement stmt = conn.createStatement();
+ResultSet rs = stmt.executeQuery("SELECT * FROM users");
+}.java
 ```
 
 ---
 
-## 📁 项目结构
+## 快速开始
+
+```bash
+git clone https://github.com/your-username/Meow.git
+cd Meow
+python bootstrap/main.py tests/hello.meow
+```
+
+**第一行 Meow 代码** (`hello.meow`)：
+
+```
+print "你好，世界！"
+```
+
+**运行**：
+
+```bash
+python bootstrap/main.py hello.meow
+```
+
+---
+
+## 项目结构
 
 ```
 Meow/
@@ -233,135 +262,59 @@ Meow/
 │   └── utils.py                 # 工具函数
 ├── tests/                       # 测试用例
 ├── devlog/                      # 开发日志
-├── README.md                    # 本文件
+├── README.md
 ├── .gitignore
 └── LICENSE
 ```
 
 ---
 
-## 🗺️ 开发路线图
+## 路线图
 
-### Phase 0：奠基 🏗️
-
-- [x] 发布《Meow 语言基础语法设计与规范》
-- [ ] 实现 Python 种子解释器，支持核心语法
-- [ ] 跨语言调用原型（Python）
-- [ ] 搭建开源仓库，发布首批用例
-
-### Phase 1：自举与特性完善 🔄
-
-- [ ] 用 Meow 重写解释器，完成自举
-- [ ] 完整的面向对象、异常、泛型、模式匹配
-- [ ] 异步/并发模型
-
-### Phase 2：性能与生态 ⚡
-
-- [ ] 引入 JIT 编译器
-- [ ] 标准库完善
-- [ ] 包管理器成熟，中央仓库上线
-
-### Phase 3：生态扩展 🌍
-
-- [ ] IDE 插件与 LSP
-- [ ] 社区贡献大量跨语言包封装
-- [ ] 生产级案例积累
-
----
-
-## 🛠️ 工具链规划
-
-| 工具 | 用途 | 状态 |
+| 阶段 | 目标 | 状态 |
 |------|------|------|
-| `nekoc` | 编译器/解释器 | 开发中 |
-| `purr` | 包管理器（支持跨语言包索引） | 规划中 |
-| `claw` | 构建工具 | 规划中 |
-| `groom` | 代码格式化工具 | 规划中 |
+| **Phase 0** 奠基 | 语法规范定稿 + Python 种子解释器 + 跨 Python 调用原型 | 进行中 |
+| **Phase 1** 自举 | Meow 自身重写解释器 + 面向对象/异常/泛型/异步 | 规划中 |
+| **Phase 2** 性能 | JIT 编译 + 标准库完善 + 包管理器 `purr` + 中央仓库 | 规划中 |
+| **Phase 3** 生态 | IDE 插件、LSP、企业案例、社区驱动跨语言包封装 | 规划中 |
+
+### 成功指标
+
+- **M1** — 完成自举，所有测试通过自举编译器
+- **M2** — 包管理器收录 100+ 跨语言封装包
+- **M3** — JIT 模式下性能达到 Go 的 60%
+- **M4** — GitHub Stars 5000+，外部贡献者 200+
+- **M5** — 至少 3 个企业/开源项目在生产中使用 Meow
 
 ---
 
-## 📖 完整语法文档
+## 参与其中
 
-详细学习 Meow 的每个语法点，请阅读：
+Meow 的愿景很大，但实现之路需要每一个认同"生态不应隔离"的开发者。
 
-- [Meow 语言基础语法设计与规范](docs/Meow%20语言基础语法设计与规范.md)
-- [Meow 语言项目立项书](docs/Meow%20语言项目立项书%20.md)
+```bash
+# Fork → 特性分支 → Commit → PR
+git checkout -b feature/awesome-idea
+git commit -m "添加..." 
+git push origin feature/awesome-idea
+```
 
----
-
-## 🤝 贡献指南
-
-Meow 欢迎所有形式的贡献！
-
-1. Fork 本仓库
-2. 创建你的特性分支 (`git checkout -b feature/amazing-feature`)
-3. 提交你的更改 (`git commit -m '添加很棒的特性'`)
-4. 推送到分支 (`git push origin feature/amazing-feature`)
-5. 提交 Pull Request
-
-### 开发流程
-
-我们采用分阶段开发模式，每个阶段完成后会写入开发日志并 git commit。详情请参阅：
-
+- [项目立项书](docs/Meow%20语言项目立项书%20.md)
 - [种子解释器搭建指导](docs/Meow%20语言的种子解释器搭建_Phase%200.md)
 - [质量保障与维护指导](docs/Meow%20语言项目质量保障与维护工作指导_Phase%200.md)
 
 ---
 
-## 📊 成功指标
+## 许可证
 
-- **M1**：完成自举，所有语言测试通过自举编译器执行
-- **M2**：包管理器收录 100+ 跨语言封装包
-- **M3**：JIT 模式下性能达到 Go 的 60%
-- **M4**：GitHub Stars 超过 5000，外部贡献者超过 200 人
-- **M5**：至少 3 个企业或开源项目在生产中使用 Meow
-
----
-
-## 📄 许可证
-
-本项目采用 **MIT License** 开源协议。
-
-- 编译器、核心库：MIT 许可证
-- 语言规范文档：CC BY 4.0
-
----
-
-## 💡 为什么选择 Meow？
-
-### 编程语言的现状
-
-现有主流语言存在普遍矛盾：
-
-- **简洁的语言**（如 Python）在性能和工程项目能力上受限
-- **强大的语言**（如 Java、C++）语法复杂，学习成本高
-- 每门语言都有自己庞大的包生态，但这些生态**互相隔离**
-
-### Meow 的解决方案
-
-| 问题 | Meow 的方案 |
-|------|------------|
-| 语法复杂 | 极简语法，缩进即结构，中英标点等价 |
-| 生态隔离 | 跨语言互操作，直接调用任何语言库 |
-| 学习成本 | 直觉化设计，索引从 1 开始，统一数据结构 |
-| 性能瓶颈 | JIT 编译，AOT 编译，渐进式性能优化 |
-
-### AI 时代的机遇
-
-AI 编程助手的成熟使得新语言的开发和推广成本大幅降低。开发者可以通过 AI 辅助学习新语法、生成标准库代码、完成跨语言包的封装。这为从零创造一门兼顾简洁与强大的新语言提供了**历史性窗口**。
-
----
-
-## 🙏 致谢
-
-感谢所有为 Meow 语言设计和实现做出贡献的开发者和社区成员。
+MIT License — 编译器、核心库：MIT | 语言规范文档：CC BY 4.0
 
 ---
 
 <div align="center">
 
-**Made with ❤️ by Meow Community**
+**生态不应隔离，语言不应孤岛。**
 
-[文档](docs/) · [问题报告](https://github.com/your-username/Meow/issues) · [功能请求](https://github.com/your-username/Meow/issues)
+[文档](docs/) · [问题报告](https://github.com/your-username/Meow/issues)
 
 </div>

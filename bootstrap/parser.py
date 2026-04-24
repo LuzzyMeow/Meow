@@ -125,7 +125,19 @@ class Parser:
         if self.peek().type == TOKEN_EQ:
             self.advance()
             value = self.parse_expression()
-            return Assignment(Identifier(name, line=t.line), value, line=t.line)
+            # 链式赋值: a = b = 5 → a = (b = 5)
+            # a = b = c = 5 → a = (b = (c = 5))
+            targets = [Identifier(name, line=t.line)]
+            while self.peek().type == TOKEN_EQ:
+                if not isinstance(value, Identifier):
+                    self.error("链式赋值的中间目标必须是标识符")
+                targets.append(value)
+                self.advance()
+                value = self.parse_expression()
+            result = value
+            for target in reversed(targets):
+                result = Assignment(target, result, line=t.line)
+            return result
 
         if self.peek().type in (
             TOKEN_PLUS_EQ, TOKEN_MINUS_EQ, TOKEN_STAR_EQ, TOKEN_SLASH_EQ
@@ -155,10 +167,12 @@ class Parser:
         while True:
             expr = self.parse_expression()
             args.append(expr)
+            if self._is_call_arg_start(self.peek()):
+                continue
             if self.peek().type == TOKEN_COMMA:
                 self.advance()
-            else:
-                break
+                continue
+            break
         return args
 
     def parse_if_statement(self):
@@ -204,14 +218,9 @@ class Parser:
         name_tok = self.expect(TOKEN_IDENTIFIER)
         name = name_tok.value
         params = []
-        if self.peek().type != TOKEN_NEWLINE:
-            while True:
-                param_tok = self.expect(TOKEN_IDENTIFIER)
-                params.append(Identifier(param_tok.value, line=param_tok.line))
-                if self.peek().type == TOKEN_COMMA:
-                    self.advance()
-                else:
-                    break
+        while self.peek().type == TOKEN_IDENTIFIER:
+            param_tok = self.advance()
+            params.append(Identifier(param_tok.value, line=param_tok.line))
         self.expect(TOKEN_NEWLINE)
         body = self.parse_block()
         return FunctionDef(name, params, body, line=line)
@@ -220,8 +229,8 @@ class Parser:
         line = self.advance().line
         if self.peek().type in (TOKEN_NEWLINE, TOKEN_DEDENT, TOKEN_EOF):
             return Return(None, line=line)
-        value = self.parse_expression()
-        return Return(value, line=line)
+        expr = self.parse_expression()
+        return Return(expr, line=line)
 
     def parse_class_def(self):
         line = self.advance().line
@@ -427,6 +436,13 @@ class Parser:
             left = BinaryOp(left, '**', right, line=left.line if hasattr(left, 'line') else 0)
         return left
 
+    def _is_call_arg_start(self, tok):
+        if tok.type in (TOKEN_NUMBER, TOKEN_STRING, TOKEN_IDENTIFIER, TOKEN_LPAREN, TOKEN_LBRACKET):
+            return True
+        if tok.type == TOKEN_KEYWORD and tok.value in ('true', 'false', 'null', 'fn'):
+            return True
+        return False
+
     def parse_call(self):
         left = self.parse_primary()
 
@@ -459,6 +475,12 @@ class Parser:
                 self.advance()
                 prop = self.expect(TOKEN_IDENTIFIER)
                 left = Property(left, prop.value, line=left.line if hasattr(left, 'line') else 0)
+                continue
+
+            if isinstance(left, (Identifier, FunctionCall, Property, Index)) and self._is_call_arg_start(t):
+                args = self.parse_argument_list()
+                line = left.line if hasattr(left, 'line') else 0
+                left = FunctionCall(left, args, line=line)
                 continue
 
             break
@@ -510,7 +532,11 @@ class Parser:
             ch = value[i]
             if ch == '/' and i + 1 < len(value):
                 next_ch = value[i + 1]
-                if next_ch == '(':
+                if next_ch == '/':
+                    buf.append('/')
+                    i += 2
+                    continue
+                elif next_ch == '(':
                     if buf:
                         parts.append(('str', ''.join(buf)))
                         buf = []
@@ -558,16 +584,10 @@ class Parser:
 
     def parse_lambda(self, line):
         params = []
-        if self.peek().type not in (TOKEN_NEWLINE, TOKEN_DEDENT, TOKEN_EOF, TOKEN_COMMA, TOKEN_RPAREN, TOKEN_RBRACKET):
-            while True:
-                param_tok = self.expect(TOKEN_IDENTIFIER)
-                params.append(Identifier(param_tok.value, line=param_tok.line))
-                if self.peek().type == TOKEN_COMMA:
-                    self.advance()
-                else:
-                    break
-        if self.peek().type == TOKEN_MINUS and self.peek(1).type == TOKEN_MINUS:
-            self.advance()
+        while self.peek().type == TOKEN_IDENTIFIER:
+            param_tok = self.advance()
+            params.append(Identifier(param_tok.value, line=param_tok.line))
+        if self.peek().type == TOKEN_MINUS_MINUS:
             self.advance()
         body = self.parse_expression()
         return Lambda(params, body, line=line)

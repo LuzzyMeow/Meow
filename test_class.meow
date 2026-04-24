@@ -1,0 +1,16 @@
+class Animal
+    def init self, name
+        self.name = name
+
+    def speak self
+        print "/self.name makes a sound"
+
+class Dog extends Animal
+    def speak self
+        print "/self.name barks"
+
+a = Animal "Generic"
+a.speak
+
+d = Dog "Rex"
+d.speak

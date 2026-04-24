@@ -89,7 +89,7 @@ class Interpreter:
                 lexer = Lexer(part_value)
                 tokens = lexer.tokenize()
                 parser = Parser(tokens)
-                ast = parser.parse()
+                ast = parser.parse_expression()
                 val = self.visit(ast)
                 result.append(str(val))
         return ''.join(result)
@@ -185,7 +185,10 @@ class Interpreter:
 
     def visit_Assignment(self, node):
         value = self.visit(node.value)
-        self.env.set(node.target.name, value)
+        if self.env.has(node.target.name):
+            self.env.set(node.target.name, value)
+        else:
+            self.env.define(node.target.name, value)
         return value
 
     def visit_AugmentedAssign(self, node):
@@ -221,7 +224,7 @@ class Interpreter:
             result = callee(*args)
             return result if result is not None else NULL_VALUE
         else:
-            self.error(f"无法调用: {callee}", node)
+            self.error(f"无法调用: {callee} (callee type: {type(callee).__name__}, node type: {type(node.callee).__name__})", node)
 
     def visit_FunctionDef(self, node):
         func = MeowFunction(node.name, node.params, node.body, self.env)
@@ -282,13 +285,13 @@ class Interpreter:
             self.env.define(node.var.name, item)
             try:
                 r = self.visit(node.body)
-                if isinstance(r, MeowReturn):
-                    return r
-                if isinstance(r, MeowBreak):
-                    break
-                if isinstance(r, MeowContinue):
-                    continue
                 result = r
+            except MeowReturn as e:
+                return e
+            except MeowBreak:
+                break
+            except MeowContinue:
+                continue
             finally:
                 self.env = old_env
         return result
@@ -296,14 +299,15 @@ class Interpreter:
     def visit_While(self, node):
         result = NULL_VALUE
         while self.is_truthy(self.visit(node.condition)):
-            r = self.visit(node.body)
-            if isinstance(r, MeowReturn):
-                return r
-            if isinstance(r, MeowBreak):
+            try:
+                r = self.visit(node.body)
+                result = r
+            except MeowReturn as e:
+                return e
+            except MeowBreak:
                 break
-            if isinstance(r, MeowContinue):
+            except MeowContinue:
                 continue
-            result = r
         return result
 
     def visit_Break(self, node):

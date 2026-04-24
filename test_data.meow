@@ -1,0 +1,19 @@
+a = [1, 2, 3]
+b = [2, 3, 4]
+
+print a ++ b
+print a -- b
+print a --/ b
+print a && b
+
+print a.length
+a.add 5
+print a
+
+print a[1]
+print a[-1]
+
+d = ["name": "Alice", "age": 30]
+print d["name"]
+print d.length
+print d.keys
