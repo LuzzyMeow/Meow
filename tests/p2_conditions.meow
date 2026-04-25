@@ -1,0 +1,122 @@
+# ============================================
+# Phase 2: 条件判断深化测试
+# ============================================
+
+# =====================
+# CF-10: 空字符串作为条件（falsy）
+# =====================
+if ""
+    print "FAIL: empty string is truthy"
+else
+    print "PASS: empty string is falsy"
+
+# =====================
+# CF-11: 非空字符串作为条件（truthy）
+# =====================
+if "hi"
+    print "PASS: non-empty string is truthy"
+else
+    print "FAIL: non-empty string is falsy"
+
+# =====================
+# CF-12: 空列表作为条件（falsy）
+# =====================
+if []
+    print "FAIL: empty list is truthy"
+else
+    print "PASS: empty list is falsy"
+
+# =====================
+# CF-13: 非空列表作为条件（truthy）
+# =====================
+if [1]
+    print "PASS: non-empty list is truthy"
+else
+    print "FAIL: non-empty list is falsy"
+
+# =====================
+# CF-14: 复杂条件表达式（and/or/not 组合）
+# =====================
+x = 10
+y = 20
+if x > 5 and y > 15
+    print "PASS: and condition"
+
+if x > 15 or y > 15
+    print "PASS: or condition"
+
+if not (x > 100)
+    print "PASS: not condition"
+
+if (x > 5 and y > 15) or x > 100
+    print "PASS: complex and/or combination"
+
+if not false and true
+    print "PASS: not false and true"
+
+# =====================
+# CF-15: if-elif-else 全分支覆盖
+# =====================
+def classify n
+    if n >= 90
+        return "A"
+    elif n >= 80
+        return "B"
+    elif n >= 70
+        return "C"
+    elif n >= 60
+        return "D"
+    else
+        return "F"
+
+print classify 95
+print classify 85
+print classify 75
+print classify 65
+print classify 50
+
+# =====================
+# CF-16: 嵌套 if（缩进层级 >= 3）
+# =====================
+a = 10
+b = 20
+c = 30
+if a > 5
+    if b > 15
+        if c > 25
+            print "PASS: 3-level nested if"
+
+# =====================
+# CF-17: if 块内新建变量，块外不可见
+# =====================
+if true
+    block_var = "inside"
+    print block_var
+
+try
+    print block_var
+except
+    print "PASS: block_var not visible outside if"
+
+# =====================
+# CF-18: 仅 if-elif 无 else
+# =====================
+val = 50
+if val > 100
+    print "FAIL: should not enter"
+elif val > 80
+    print "FAIL: should not enter"
+
+print "PASS: if-elif without else skipped all"
+
+# =====================
+# 补充：条件表达式中的运算符交互
+# =====================
+lst = [1, 2, 3]
+if 2 in lst
+    print "PASS: in operator in condition"
+
+if 4 not in lst
+    print "PASS: not in operator in condition"
+
+print "--- p2_conditions done ---"

@@ -1,0 +1,117 @@
+# ============================================
+# Phase 2: 循环深化测试
+# ============================================
+
+# =====================
+# CF-22: 遍历空列表
+# =====================
+entered = false
+for x in []
+    entered = true
+if not entered
+    print "PASS: empty list loop not entered"
+
+# =====================
+# CF-23: 遍历单元素列表
+# =====================
+for x in [42]
+    print x
+
+# =====================
+# CF-27: for 循环变量块外不可见
+# =====================
+for loop_var in [1, 2, 3]
+    print loop_var
+
+try
+    print loop_var
+except
+    print "PASS: loop_var not visible outside for"
+
+# =====================
+# CF-28: 嵌套 for 中 break 只跳出内层
+# =====================
+outer_count = 0
+for i in [1, 2, 3]
+    inner_count = 0
+    for j in [10, 20, 30]
+        if j == 20
+            break
+        inner_count = inner_count + 1
+    outer_count = outer_count + 1
+
+print outer_count
+
+# =====================
+# CF-30: while 条件初始为 false（零次执行）
+# =====================
+while_count = 0
+while false
+    while_count = while_count + 1
+if while_count == 0
+    print "PASS: while false zero iterations"
+
+# =====================
+# CF-34: while 条件为复合表达式
+# =====================
+a = 5
+b = 5
+result = 0
+while a > 0 and b > 0
+    result = result + a + b
+    a = a - 1
+    b = b - 1
+print result
+
+# =====================
+# CF-37: break 在嵌套循环中只跳出当前层
+# =====================
+log = []
+for i in [1, 2]
+    for j in [10, 20, 30]
+        if j == 20
+            break
+        log = log ++ [j]
+    log = log ++ [i]
+
+print log
+
+# =====================
+# 补充：for + continue 跳过特定元素
+# =====================
+evens = []
+for i in range 10
+    if i % 2 != 0
+        continue
+    evens = evens ++ [i]
+print evens
+
+# =====================
+# 补充：while + continue 累加奇数
+# =====================
+k = 0
+odd_sum = 0
+while k < 10
+    k = k + 1
+    if k % 2 == 0
+        continue
+    odd_sum = odd_sum + k
+print odd_sum
+
+# =====================
+# 补充：嵌套 for 累加
+# =====================
+total = 0
+for i in [1, 2]
+    for j in [10, 20]
+        total = total + i + j
+print total
+
+# =====================
+# 补充：for 遍历字符串列表
+# =====================
+words = ["hello", "meow", "world"]
+for w in words
+    print w
+
+print "--- p2_loops done ---"

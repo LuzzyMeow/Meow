@@ -1,6 +1,7 @@
 from .utils import MeowError
 from .lexer import (
     TOKEN_KEYWORD, TOKEN_IDENTIFIER, TOKEN_NUMBER, TOKEN_STRING, TOKEN_STRING_INTERP,
+    KEYWORDS,
     TOKEN_INDENT, TOKEN_DEDENT, TOKEN_NEWLINE, TOKEN_EOF,
     TOKEN_PLUS, TOKEN_MINUS, TOKEN_STAR, TOKEN_SLASH,
     TOKEN_DOUBLE_SLASH, TOKEN_PERCENT, TOKEN_DOUBLE_STAR,
@@ -628,6 +629,11 @@ class Parser:
                             i += 1
                         else:
                             break
+                    var_name = ''.join(var_chars)
+                    if var_name in KEYWORDS:
+                        buf.append('/')
+                        buf.extend(var_chars)
+                        continue
                     # 支持属性访问和索引访问: /self.name /self.name[1]
                     expr_chars = list(var_chars)
                     while i < len(value):
