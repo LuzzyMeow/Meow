@@ -15,7 +15,7 @@ class MeowError(Exception):
         return "".join(parts)
 
 
-class MeowRuntimeError(Exception):
+class MeowRuntimeError(MeowError):
     def __init__(self, message, line=None):
         self.message = message
         self.line = line

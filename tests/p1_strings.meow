@@ -1,0 +1,41 @@
+# Phase 1: 字符串测试
+
+# === 变量名后紧跟普通字符（用括号消除歧义） ===
+name = "World"
+print "hello /(name)world"
+
+# === 索引访问插值 ===
+arr = [10, 20, 30]
+print "second is /arr[2]"
+
+# === 字符串方法 ===
+# length
+print "abc".length
+
+# up
+print "hi".up
+
+# low
+print "HI".low
+
+# strip
+print "  a  ".strip
+
+# replace
+print "aba".replace "a", "x"
+
+# split
+print "a,b,c".split ","
+
+# contains
+print "hello".contains "ell"
+print "hello".contains "xyz"
+
+# === 字符串拼接 ===
+print "hello" ++ " world"
+
+# === 转义字符 ===
+print "line1\nline2"
+print "tab\there"
+print "back\\slash"
+print "quote\"inside"

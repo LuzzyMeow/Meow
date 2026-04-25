@@ -1,0 +1,53 @@
+# Phase 1: 布尔与空值测试
+
+# === 0 为假 ===
+if 0
+    print "ERROR: 0 should be falsy"
+else
+    print "0 is falsy"
+
+# === 空字符串为假 ===
+if ""
+    print "ERROR: empty string should be falsy"
+else
+    print "empty string is falsy"
+
+# === 空列表为假 ===
+if []
+    print "ERROR: empty list should be falsy"
+else
+    print "empty list is falsy"
+
+# === 非零数字为真 ===
+if 42
+    print "42 is truthy"
+else
+    print "ERROR: 42 should be truthy"
+
+# === 非空字符串为真 ===
+if "hi"
+    print "non-empty string is truthy"
+else
+    print "ERROR: non-empty string should be truthy"
+
+# === 非空列表为真 ===
+if [1]
+    print "non-empty list is truthy"
+else
+    print "ERROR: non-empty list should be truthy"
+
+# === and 短路求值验证 ===
+# false and <error> 不应报错
+side_effect = 0
+def risky
+    side_effect = 1
+    return true
+result = false and risky
+print result
+print side_effect
+
+# === or 短路求值验证 ===
+side_effect = 0
+result = true or risky
+print result
+print side_effect

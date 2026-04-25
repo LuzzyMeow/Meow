@@ -46,9 +46,41 @@ def meow_range(start, end=None, step=1):
     return MeowList(list(range(start, end + 1, step)))
 
 
+def meow_int(val):
+    if isinstance(val, str):
+        try:
+            if val.startswith('0x') or val.startswith('0X'):
+                return int(val, 16)
+            if val.startswith('0b') or val.startswith('0B'):
+                return int(val, 2)
+            return int(val)
+        except ValueError:
+            raise RuntimeError(f"无法将 '{val}' 转换为整数")
+    if isinstance(val, float):
+        return int(val)
+    if isinstance(val, int):
+        return val
+    raise RuntimeError(f"无法将 {type(val).__name__} 转换为整数")
+
+
+def meow_float(val):
+    if isinstance(val, str):
+        try:
+            return float(val)
+        except ValueError:
+            raise RuntimeError(f"无法将 '{val}' 转换为浮点数")
+    if isinstance(val, int):
+        return float(val)
+    if isinstance(val, float):
+        return val
+    raise RuntimeError(f"无法将 {type(val).__name__} 转换为浮点数")
+
+
 def register_builtins(env):
     env.define('print', meow_print)
     env.define('len', meow_len)
     env.define('type', meow_type)
     env.define('input', meow_input)
     env.define('range', meow_range)
+    env.define('int', meow_int)
+    env.define('float', meow_float)

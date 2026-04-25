@@ -206,11 +206,30 @@ class Lexer:
     def read_number(self):
         num_str = []
         has_dot = False
-        while self.peek().isdigit() or (self.peek() == '.' and not has_dot):
+        has_e = False
+        if self.peek() == '0':
+            num_str.append(self.advance())
+            if self.peek() in ('x', 'X'):
+                num_str.append(self.advance())
+                while self.peek() in '0123456789abcdefABCDEF':
+                    num_str.append(self.advance())
+                return int(''.join(num_str), 16)
+            if self.peek() in ('b', 'B'):
+                num_str.append(self.advance())
+                while self.peek() in '01':
+                    num_str.append(self.advance())
+                return int(''.join(num_str), 2)
+        while self.peek().isdigit() or (self.peek() == '.' and not has_dot) or (self.peek() in ('e', 'E') and not has_e):
             if self.peek() == '.':
                 has_dot = True
+            elif self.peek() in ('e', 'E'):
+                has_e = True
+                num_str.append(self.advance())
+                if self.peek() in ('+', '-'):
+                    num_str.append(self.advance())
+                continue
             num_str.append(self.advance())
-        return float(''.join(num_str)) if has_dot else int(''.join(num_str))
+        return float(''.join(num_str)) if has_dot or has_e else int(''.join(num_str))
 
     def read_identifier(self):
         ident = []

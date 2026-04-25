@@ -1,0 +1,20 @@
+# Phase 1: 中文标点兼容测试
+
+# === 中文逗号 ===
+arr = 【1，2，3】
+print arr
+
+# === 中文冒号（字典） ===
+d = 【"name"："Alice"】
+print d
+
+# === 中文括号 ===
+result = （1 + 2） * 3
+print result
+
+# === 中文引号 ===
+msg = "你好世界"
+print msg
+
+msg2 = '单引号测试'
+print msg2

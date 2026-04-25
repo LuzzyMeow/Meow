@@ -1,0 +1,25 @@
+# Phase 1: 字面量测试
+
+# === 十六进制 ===
+print 0xFF
+
+# === 二进制 ===
+print 0b1010
+
+# === 科学计数法 ===
+print 1.5e10
+
+# === 单引号字符串 ===
+print 'hello from single quotes'
+
+# === 大整数运算 ===
+big = 999999999999999999999999999999
+print big + 1
+
+# === int 函数 ===
+num = int "100"
+print num + 1
+
+# === float 函数 ===
+pi = float "3.14"
+print pi * 2

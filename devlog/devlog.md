@@ -159,7 +159,55 @@ python -m bootstrap.main tests/debug.meow        # ✅
 - 标签 `v0.1.0`: Meow 语言种子解释器 v0.1.0 Alpha
 
 ### 下一步
-- **Phase 1 自举**：用 Meow 语言自身重写解释器
-- 接口（interface/implements）
-- 泛型支持
-- 异步编程（async/await）
+- **Phase 1 深化**：变量与表达式模块逐项验证与加固
+- **Phase 2 自举**：用 Meow 语言自身重写解释器
+
+---
+
+## Phase 1 深化与加固 — 变量与表达式
+
+**日期**: 2026-04-25
+**分支**: `phase/1-variables-expressions`
+**状态**: ✅ 完成
+
+### 任务内容
+按照《Meow 语言基础语法设计与规范》对变量与表达式模块进行逐项验证、缺陷修复、边界测试补充。
+
+### 1.1 检查清单
+从规范中提取 56 项语法规则，保存至 `devlog/phase1_checklist.md`。
+
+### 1.2 覆盖缺口报告
+原有测试仅覆盖 20/56 项（35.7%），36 项缺失。报告保存至 `devlog/phase1_coverage_gap.md`。
+
+### 1.3 新增测试文件
+| 文件 | 覆盖范围 |
+|------|----------|
+| `tests/p1_literals.meow` | 十六进制、二进制、科学计数法、大整数、int/float 函数 |
+| `tests/p1_operators.meow` | and/or 短路、in/not in、列表集合运算、优先级、负数取余、除零 |
+| `tests/p1_strings.meow` | 字符串插值边界、字符串方法(length/up/low/strip/replace/split/contains)、转义字符 |
+| `tests/p1_booleans.meow` | 真值/假值表、and/or 短路求值验证 |
+| `tests/p1_scope.meow` | if/for 块级作用域、未定义变量访问 |
+| `tests/p1_punctuation.meow` | 中文标点兼容 |
+
+### 1.4 缺陷修复
+
+| 缺陷 | 原因 | 修复 |
+|------|------|------|
+| 十六进制 `0xFF` 解析失败 | lexer 不支持 `0x`/`0b` 前缀 | 重写 `read_number` 方法，支持十六进制、二进制、科学计数法 |
+| `int`/`float` 函数未定义 | 未注册为内置函数 | 在 `builtins.py` 中添加 `meow_int`/`meow_float` |
+| 字符串无 `length` 等方法 | `visit_Property` 未处理字符串类型 | 在 `visit_Property` 中添加字符串属性支持（length/up/low/strip/replace/split/contains） |
+| 除零未被 try/except 捕获 | Python `ZeroDivisionError` 未转换为 Meow 异常 | 在 `visit_BinaryOp` 中显式检查除零并抛出 Meow 运行时错误 |
+| `MeowRuntimeError` 未被 try/except 捕获 | `visit_Try` 只捕获 `MeowException` | 修改 `visit_Try` 同时捕获 `MeowRuntimeError`，并转换为 `MeowException` |
+| `MeowRuntimeError` 不继承 `MeowError` | 两个异常类无继承关系 | 修改 `MeowRuntimeError` 继承 `MeowError` |
+
+### 1.5 回归测试
+全部 18 个测试文件通过（12 既有 + 6 新增），`python tests/run_all.py` 输出 `18 passed, 0 failed`。
+
+### 1.6 代码质量检查
+- ✅ 全角映射表完整覆盖规范 2.2 的所有符号
+- ✅ 运算符优先级与规范 2.9 一致
+
+### 规范二义性记录
+1. **字符串插值变量名边界**：规范声称 `/nameworld` 能"精确识别"变量名边界，但未给出算法。当前实现将 `/nameworld` 解析为变量 `nameworld`，用户应使用 `/(name)world` 明确边界。
+2. **`const` 常量**：规范 4 章提及 `const` 但当前未实现，暂不涉及。
+3. **`print -7` 歧义**：`-` 不被识别为无括号调用参数起始，`print -7` 被解析为 `print - 7`（减法），用户应写 `print (-7)`。

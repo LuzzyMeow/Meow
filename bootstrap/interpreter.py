@@ -127,10 +127,16 @@ class Interpreter:
         elif node.op == '*':
             return left * right
         elif node.op == '/':
+            if right == 0:
+                self.error("除零错误", node)
             return left / right
         elif node.op == '//':
+            if right == 0:
+                self.error("除零错误", node)
             return left // right
         elif node.op == '%':
+            if right == 0:
+                self.error("取余除零错误", node)
             return left % right
         elif node.op == '**':
             return left ** right
@@ -434,6 +440,29 @@ class Interpreter:
                     obj.set(key, value)
                     return NULL_VALUE
                 return dict_set_method
+        if isinstance(obj, str):
+            if node.name == 'length':
+                return len(obj)
+            if node.name == 'up':
+                return obj.upper()
+            if node.name == 'low':
+                return obj.lower()
+            if node.name == 'strip':
+                return obj.strip()
+            if node.name == 'replace':
+                def replace_method(old, new):
+                    return obj.replace(old, new)
+                return replace_method
+            if node.name == 'split':
+                def split_method(sep=None):
+                    if sep is None:
+                        return MeowList(obj.split())
+                    return MeowList(obj.split(sep))
+                return split_method
+            if node.name == 'contains':
+                def contains_method(sub):
+                    return sub in obj
+                return contains_method
         self.error(f"对象没有属性: {node.name}", node)
 
     def visit_ClassDef(self, node):
@@ -463,7 +492,9 @@ class Interpreter:
     def visit_Try(self, node):
         try:
             return self.visit(node.try_block)
-        except MeowException as exc:
+        except (MeowException, MeowRuntimeError) as exc:
+            if isinstance(exc, MeowRuntimeError):
+                exc = MeowException('RuntimeError', exc.message)
             if node.except_var:
                 env = Environment(self.env)
                 old_env = self.env
