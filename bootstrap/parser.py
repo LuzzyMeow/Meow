@@ -532,7 +532,7 @@ class Parser:
                 left = Property(left, str(prop.value), line=left.line if hasattr(left, 'line') else 0)
                 continue
 
-            if self._call_depth == 0 and isinstance(left, (Identifier, FunctionCall, Property, Index)) and self._is_call_arg_start(t):
+            if self._call_depth == 0 and isinstance(left, (Identifier, FunctionCall, Property, Index, Lambda)) and self._is_call_arg_start(t):
                 args = self.parse_argument_list()
                 line = left.line if hasattr(left, 'line') else 0
                 left = FunctionCall(left, args, line=line)
@@ -679,6 +679,8 @@ class Parser:
         ):
             param_tok = self.advance()
             params.append(Identifier(param_tok.value, line=param_tok.line))
+            if self.peek().type == TOKEN_COMMA:
+                self.advance()
         if self.peek().type == TOKEN_MINUS_MINUS:
             self.advance()
         body = self.parse_expression()

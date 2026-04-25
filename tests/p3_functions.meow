@@ -1,0 +1,87 @@
+# ============================================
+# Phase 3: 函数定义与调用深化测试
+# ============================================
+
+# =====================
+# FN-02: 无参函数（需括号调用）
+# =====================
+def say_hi
+    print "hello"
+
+say_hi()
+
+# =====================
+# FN-07: 显式括号调用
+# =====================
+def add a, b
+    return a + b
+
+result = add(3, 5)
+print result
+
+# =====================
+# FN-09: 返回各种类型
+# =====================
+def ret_num
+    return 42
+
+def ret_str
+    return "meow"
+
+def ret_list
+    return [1, 2, 3]
+
+def ret_bool
+    return true
+
+def ret_null
+    return null
+
+print ret_num()
+print ret_str()
+print ret_list()
+print ret_bool()
+print ret_null()
+
+# =====================
+# FN-10: 无 return 语句返回 null
+# =====================
+def no_return
+    x = 10
+
+val = no_return()
+if val == null
+    print "PASS: no return yields null"
+
+# =====================
+# FN-11: return 提前退出
+# =====================
+def early_return
+    print "before"
+    return 99
+    print "after"
+
+val = early_return()
+print val
+
+# =====================
+# FN-23: 函数作为参数传递
+# =====================
+def apply f, x
+    return f x
+
+double = fn x -- x * 2
+print apply double, 5
+
+# =====================
+# 补充: 函数内部定义函数并返回
+# =====================
+def outer
+    def inner
+        return "inner result"
+    return inner
+
+f = outer()
+print f()
+
+print "--- p3_functions done ---"

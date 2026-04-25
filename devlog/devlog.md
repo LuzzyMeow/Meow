@@ -225,3 +225,57 @@ Phase 1 测试中暴露的 3 个语法规范二义性问题，经项目经理裁
 三项裁决已同步至：
 - `devlog/phase1_checklist.md`（S-03、V-06、O-31 状态更新）
 - `docs/Meow 语言基础语法设计与规范_Phase 0.md`（新增 2.11 子章节、修正 2.8 描述）
+
+---
+
+## Phase 2 — 控制流深化
+
+**日期**: 2026-04-25
+
+### 检查清单与缺口
+
+- `devlog/phase2_checklist.md`: 38 项规则，已覆盖 18 项（47.4%）
+- `devlog/phase2_coverage_gap.md`: 20 项缺口
+
+### 新增测试
+
+- `tests/p2_conditions.meow`: 条件判断深化（falsy/truthy 值、复杂条件、嵌套 if、块级作用域）
+- `tests/p2_loops.meow`: 循环深化（空列表遍历、break/continue 语义、嵌套循环、while 复合条件）
+
+### 缺陷修复
+
+1. **字符串插值/关键字冲突**（parser.py）: `/or`、`/and` 等关键字不再触发字符串插值，改为字面文本。修复方法：在 `_parse_string_with_interp()` 中检查变量名是否在 `KEYWORDS` 集合中。
+
+### 规范二义性记录
+
+1. **无参函数无括号调用**：`say_hi` 被解析为变量引用而非函数调用。当前实现要求无参函数使用 `fn()` 语法。规范未明确无参函数是否支持无括号调用。
+
+---
+
+## Phase 3 — 函数深化
+
+**日期**: 2026-04-25
+
+### 检查清单与缺口
+
+- `devlog/phase3_checklist.md`: 27 项规则，已覆盖 7 项（25.9%）
+- `devlog/phase3_coverage_gap.md`: 20 项缺口
+
+### 新增测试
+
+- `tests/p3_functions.meow`: 函数定义与调用（无参函数、括号调用、返回值类型、return 语义、函数作为参数）
+- `tests/p3_lambda.meow`: 匿名函数（立即调用、作为参数、多参数匿名函数、变量捕获）
+- `tests/p3_recursion.meow`: 递归（阶乘、斐波那契、深度限制、递归累加）
+- `tests/p3_closures.meow`: 闭包与高阶函数（闭包访问/修改外部变量、工厂模式、多层闭包）
+- `tests/p3_call_interactions.meow`: 无括号调用交互（运算符优先级、链式调用、显式括号）
+
+### 缺陷修复
+
+1. **Lambda 不支持逗号分隔参数**（parser.py）: `fn a, b -- a + b` 解析失败。修复：在 `parse_lambda()` 中添加逗号处理，与 `parse_function_def()` 一致。
+2. **Lambda 不支持无括号调用**（parser.py）: `(fn x -- x * 2) 5` 不被识别为函数调用。修复：在 `parse_call()` 的无括号调用白名单中添加 `Lambda` 类型。
+
+### 规范二义性记录
+
+1. **无参函数无括号调用**：同 Phase 2 记录
+2. **Lambda 多行体**：`fn` 匿名函数只支持单表达式体，不支持多行缩进块。规范未明确是否支持。
+3. **嵌套无括号调用逗号歧义**：`print add(3, 5)` 中逗号属于 `add` 的参数，但 `print add 3, 5` 中逗号属于 `print` 的参数。这是无括号调用的固有歧义。

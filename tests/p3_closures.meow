@@ -1,0 +1,68 @@
+# ============================================
+# Phase 3: 闭包与高阶函数深化测试
+# ============================================
+
+# =====================
+# FN-21: 闭包访问外部变量
+# =====================
+def make_adder n
+    return fn x -- x + n
+
+add5 = make_adder 5
+add10 = make_adder 10
+print add5 3
+print add10 3
+
+# =====================
+# FN-22: 闭包修改外部变量（使用命名函数）
+# =====================
+def make_counter
+    count = 0
+    def inc
+        count = count + 1
+        return count
+    return inc
+
+counter = make_counter()
+print counter()
+print counter()
+print counter()
+
+# =====================
+# FN-24: 函数作为返回值（工厂模式）
+# =====================
+def make_multiplier factor
+    return fn x -- x * factor
+
+double = make_multiplier 2
+triple = make_multiplier 3
+print double 5
+print triple 5
+
+# =====================
+# 补充: 闭包捕获不同作用域
+# =====================
+def outer_fn
+    x = 10
+    def inner_fn
+        return x + 1
+    return inner_fn
+
+f = outer_fn()
+print f()
+
+# =====================
+# 补充: 多层闭包
+# =====================
+def level1
+    a = 1
+    def level2
+        b = 2
+        return fn -- a + b
+    return level2
+
+l2 = level1()
+l3 = l2()
+print l3()
+
+print "--- p3_closures done ---"
