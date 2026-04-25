@@ -66,13 +66,55 @@ python -m bootstrap.main test.meow
 # 输出: Hello, World!
 ```
 
-#### 下一步计划
+---
 
-- 阶段 1：变量与表达式 — 全面测试赋值、算术、字符串插值
-- 阶段 2：控制流 — 测试 if/for/while/break/continue
-- 阶段 3：函数 — 测试 def/return/lambda
-- 阶段 4：数据结构 — 测试列表、字典、列表推导
-- 阶段 5：类与对象 — 测试 class/继承/接口
-- 阶段 6：异常处理 — 测试 try/except/finally/raise/error
-- 阶段 7：跨语言调用 — 测试 import python {}
-- 阶段 8：收尾发布 — 完整测试套件、README、v0.1.0
+## v0.0.2 — 代码审查与核心 Bug 修复
+
+**日期**: 2026-04-25
+**状态**: ✅ 完成
+
+### 任务内容
+对种子解释器进行全面代码审查，运行全部测试用例，诊断并修复所有阻断性问题。
+
+### 实现情况
+- 修复了 `parse_function_def` 不支持逗号分隔参数的问题（`def init self, name`）
+- 修复了 lexer 中 `--/` 运算符被错误拆分为 `--` + `/` 的问题
+- 修复了 `MeowFunction.call` 中 `self` 参数绑定逻辑，支持显式 `self`（`def init self, name`）和隐式 `self`（`init name`）两种方法定义风格
+- 修复了 `_is_call_arg_start` 未将 `self` 识别为有效调用参数起始 token 的问题
+- 增强了字符串插值解析，支持 `/self.name` 和 `/self.name[1]` 形式的属性/索引访问
+
+### 测试方法
+运行全部 12 个测试文件验证：
+
+```bash
+python -m bootstrap.main tests/hello.meow        # ✅
+python -m bootstrap.main tests/variables.meow    # ✅
+python -m bootstrap.main tests/control_flow.meow # ✅
+python -m bootstrap.main tests/functions.meow    # ✅
+python -m bootstrap.main test_data.meow          # ✅
+python -m bootstrap.main test_listcomp.meow      # ✅
+python -m bootstrap.main test_try.meow           # ✅
+python -m bootstrap.main test_edge.meow          # ✅
+python -m bootstrap.main test_edge2.meow         # ✅
+python -m bootstrap.main test_class.meow         # ✅
+python -m bootstrap.main test_class2.meow        # ✅
+python -m bootstrap.main test_debug.meow         # ✅
+```
+
+### 遇到的错误与解决
+
+| 错误现象 | 原因分析 | 解决方案 |
+|----------|----------|----------|
+| `def init self, name` 报错"期望 NEWLINE，实际得到 COMMA" | `parse_function_def` 参数循环未消费逗号 | 在参数解析后增加 `if self.peek().type == TOKEN_COMMA: self.advance()` |
+| `a --/ b` 报错"意外的 token: SLASH" | lexer 优先识别 `--` 为 `TOKEN_MINUS_MINUS`，`/` 被单独识别 | 调整 lexer 逻辑，让 `--/` 优先于 `--` 被识别 |
+| `self.name = name` 赋值后属性为 null | `MeowFunction.call` 中 `offset=1` 导致参数索引错位 | 引入 `has_explicit_self` 检测，根据方法是否显式声明 `self` 参数动态调整参数绑定索引 |
+| `print self.name` 被拆分为两个语句 | `_is_call_arg_start` 对 `TOKEN_KEYWORD` 类型的 `self` 返回 False | 将 `self` 加入 `_is_call_arg_start` 的关键字白名单 |
+| `"/self.name"` 只解析 `self` 为变量 | `_parse_string_with_interp` 的 `interp_var` 分支遇到 `.` 即停止 | 扩展 `interp_var` 解析逻辑，支持后续的 `.属性` 和 `[索引]` 访问 |
+
+### 修改的文件
+- `bootstrap/parser.py` — 函数参数逗号分隔、`_is_call_arg_start` 支持 `self`、字符串插值支持属性访问
+- `bootstrap/lexer.py` — `--/` 运算符优先级修复
+- `bootstrap/environment.py` — `MeowFunction.call` 的 `self` 参数绑定逻辑重构
+
+### 下一步
+- 阶段 8：收尾发布 — 完整测试套件、README 更新、v0.1.0 版本发布

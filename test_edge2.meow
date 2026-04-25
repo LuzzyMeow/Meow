@@ -1,0 +1,37 @@
+# 更多边界测试
+
+# 1. 空值处理
+a = null
+if a
+    print "should not print"
+else
+    print "null is falsy"
+
+# 2. 字符串插值
+name = "Meow"
+print $"Hello, ${name}!"
+
+# 3. 列表索引
+arr = [10, 20, 30]
+print arr.0
+print arr.1
+
+# 4. 字典索引
+d = ["key": "value"]
+print d."key"
+
+# 5. 错误处理
+try
+    print "before error"
+    raise TestError "test message"
+    print "after error"
+except e
+    print "caught error"
+finally
+    print "finally block"
+
+# 6. 跨语言调用
+import python {
+    result = 2 + 3
+}
+print result

@@ -65,7 +65,7 @@ class Interpreter:
                 result = self.visit(stmt)
                 if isinstance(result, (MeowReturn, MeowBreak, MeowContinue)):
                     return result
-            return None
+            return NULL_VALUE
         finally:
             self.env = old_env
 
@@ -104,6 +104,17 @@ class Interpreter:
         return NULL_VALUE
 
     def visit_BinaryOp(self, node):
+        if node.op == 'and':
+            left = self.visit(node.left)
+            if not self.is_truthy(left):
+                return left
+            return self.visit(node.right)
+        if node.op == 'or':
+            left = self.visit(node.left)
+            if self.is_truthy(left):
+                return left
+            return self.visit(node.right)
+
         left = self.visit(node.left)
         right = self.visit(node.right)
 
@@ -135,10 +146,6 @@ class Interpreter:
             return left <= right
         elif node.op == '>=':
             return left >= right
-        elif node.op == 'and':
-            return left and right
-        elif node.op == 'or':
-            return left or right
         elif node.op == 'in':
             if isinstance(right, MeowList):
                 return right.contains(left)
@@ -185,10 +192,31 @@ class Interpreter:
 
     def visit_Assignment(self, node):
         value = self.visit(node.value)
-        if self.env.has(node.target.name):
-            self.env.set(node.target.name, value)
+        target = node.target
+
+        if isinstance(target, Identifier):
+            if self.env.has(target.name):
+                self.env.set(target.name, value)
+            else:
+                self.env.define(target.name, value)
+        elif isinstance(target, Property):
+            obj = self.visit(target.obj)
+            if isinstance(obj, MeowInstance):
+                obj.set(target.name, value)
+            else:
+                self.error(f"无法设置属性: {target.name}", node)
+        elif isinstance(target, Index):
+            obj = self.visit(target.obj)
+            index = self.visit(target.index)
+            if isinstance(obj, MeowList):
+                obj.set(index, value)
+            elif isinstance(obj, MeowDict):
+                obj.set(index, value)
+            else:
+                self.error(f"无法设置索引: {type(obj)}", node)
         else:
-            self.env.define(node.target.name, value)
+            self.error(f"不支持的赋值目标: {type(target).__name__}", node)
+
         return value
 
     def visit_AugmentedAssign(self, node):
@@ -209,8 +237,8 @@ class Interpreter:
         return result
 
     def visit_FunctionCall(self, node):
-        args = [self.visit(arg) for arg in node.args]
         callee = self.visit(node.callee)
+        args = [self.visit(arg) for arg in node.args]
 
         if isinstance(callee, MeowFunction):
             result = callee.call(self, args)
@@ -224,7 +252,7 @@ class Interpreter:
             result = callee(*args)
             return result if result is not None else NULL_VALUE
         else:
-            self.error(f"无法调用: {callee} (callee type: {type(callee).__name__}, node type: {type(node.callee).__name__})", node)
+            self.error(f"无法调用: {callee} (类型: {type(callee).__name__})", node)
 
     def visit_FunctionDef(self, node):
         func = MeowFunction(node.name, node.params, node.body, self.env)
@@ -366,8 +394,15 @@ class Interpreter:
     def visit_Property(self, node):
         obj = self.visit(node.obj)
         if isinstance(obj, MeowInstance):
-            return obj.get(node.name)
+            val = obj.get(node.name)
+            if isinstance(val, MeowFunction):
+                def bound_method(*args):
+                    return val.call(self, [obj] + list(args))
+                return bound_method
+            return val
         if isinstance(obj, MeowList):
+            if node.name.isdigit():
+                return obj.items[int(node.name)]
             if node.name == 'length':
                 return obj.length()
             if node.name == 'add':
@@ -388,6 +423,8 @@ class Interpreter:
                     return obj.contains(item)
                 return contains_method
         if isinstance(obj, MeowDict):
+            if node.name in obj.data:
+                return obj.data[node.name]
             if node.name == 'keys':
                 return obj.keys()
             if node.name == 'length':
@@ -404,8 +441,8 @@ class Interpreter:
         base_class = None
         if node.base_class:
             base_class = self.visit(node.base_class)
-            if isinstance(base_class, MeowClass):
-                base_class = base_class
+            if not isinstance(base_class, MeowClass):
+                self.error(f"基类必须是类: {type(base_class)}", node)
 
         for method in node.body:
             func = MeowFunction(
@@ -413,6 +450,11 @@ class Interpreter:
                 is_method=True
             )
             methods[method.name] = func
+
+        if base_class:
+            for name, method in base_class.methods.items():
+                if name not in methods:
+                    methods[name] = method
 
         cls = MeowClass(node.name, base_class, methods)
         self.env.define(node.name, cls)
@@ -465,4 +507,8 @@ class Interpreter:
         return self.visit(ast)
 
     def visit_CrossLangBlock(self, node):
-        return self.cross_lang.execute(node.lang, node.body, self.env)
+        result = self.cross_lang.execute(node.lang, node.body, self.env)
+        if isinstance(result, dict):
+            for key, value in result.items():
+                self.env.define(key, value)
+        return result

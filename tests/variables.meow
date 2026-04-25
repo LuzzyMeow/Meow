@@ -23,11 +23,11 @@ print 2 ** 10
 
 # 复合表达式
 print 1 + 2 * 3
-print (1 + 2) * 3
+print ((1 + 2) * 3)
 
 # 负数
-print -5
-print -10 + 3
+print (-5)
+print ((-10) + 3)
 
 # 浮点数
 print 3.14 * 2

@@ -1,6 +1,6 @@
 from .utils import MeowError
 from .lexer import (
-    TOKEN_KEYWORD, TOKEN_IDENTIFIER, TOKEN_NUMBER, TOKEN_STRING,
+    TOKEN_KEYWORD, TOKEN_IDENTIFIER, TOKEN_NUMBER, TOKEN_STRING, TOKEN_STRING_INTERP,
     TOKEN_INDENT, TOKEN_DEDENT, TOKEN_NEWLINE, TOKEN_EOF,
     TOKEN_PLUS, TOKEN_MINUS, TOKEN_STAR, TOKEN_SLASH,
     TOKEN_DOUBLE_SLASH, TOKEN_PERCENT, TOKEN_DOUBLE_STAR,
@@ -10,6 +10,7 @@ from .lexer import (
     TOKEN_PLUS_EQ, TOKEN_MINUS_EQ, TOKEN_STAR_EQ, TOKEN_SLASH_EQ,
     TOKEN_COLON, TOKEN_COMMA, TOKEN_DOT,
     TOKEN_LPAREN, TOKEN_RPAREN, TOKEN_LBRACKET, TOKEN_RBRACKET,
+    TOKEN_LBRACE, TOKEN_RBRACE,
     TOKEN_AT, TOKEN_PIPE, TOKEN_ARROW,
 )
 from .ast_nodes import (
@@ -21,11 +22,15 @@ from .ast_nodes import (
     Property, ClassDef, Try, Raise, ErrorDef, Import, CrossLangBlock,
 )
 
+_METHOD_NAME_KEYWORDS = {'init'}
+_PARAM_NAME_KEYWORDS = {'self', 'init'}
+
 
 class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
         self.pos = 0
+        self._call_depth = 0
 
     def error(self, message):
         t = self.peek()
@@ -107,10 +112,9 @@ class Parser:
                 self.advance()
                 return Null(line=t.line)
             elif kw == 'init':
-                name = self.advance()
-                return Identifier(name.value, line=name.line)
-            # 'and'/'or'/'not' are handled in expression parsing
-            # 'fn' for lambda is handled in expression parsing
+                return self.parse_function_def()
+            else:
+                return self.parse_identifier_statement()
 
         if t.type == TOKEN_IDENTIFIER:
             return self.parse_identifier_statement()
@@ -119,15 +123,14 @@ class Parser:
         return expr
 
     def parse_identifier_statement(self):
-        t = self.advance()
-        name = t.value
+        expr = self.parse_expression()
 
         if self.peek().type == TOKEN_EQ:
+            if not isinstance(expr, (Identifier, Property, Index)):
+                self.error("赋值目标必须是标识符、属性或索引")
             self.advance()
             value = self.parse_expression()
-            # 链式赋值: a = b = 5 → a = (b = 5)
-            # a = b = c = 5 → a = (b = (c = 5))
-            targets = [Identifier(name, line=t.line)]
+            targets = [expr]
             while self.peek().type == TOKEN_EQ:
                 if not isinstance(value, Identifier):
                     self.error("链式赋值的中间目标必须是标识符")
@@ -136,12 +139,14 @@ class Parser:
                 value = self.parse_expression()
             result = value
             for target in reversed(targets):
-                result = Assignment(target, result, line=t.line)
+                result = Assignment(target, result, line=expr.line if hasattr(expr, 'line') else 0)
             return result
 
         if self.peek().type in (
             TOKEN_PLUS_EQ, TOKEN_MINUS_EQ, TOKEN_STAR_EQ, TOKEN_SLASH_EQ
         ):
+            if not isinstance(expr, (Identifier, Property, Index)):
+                self.error("复合赋值目标必须是标识符、属性或索引")
             op_token = self.advance()
             op_map = {
                 TOKEN_PLUS_EQ: '+=',
@@ -151,28 +156,42 @@ class Parser:
             }
             value = self.parse_expression()
             return AugmentedAssign(
-                Identifier(name, line=t.line),
+                expr,
                 op_map[op_token.type],
                 value,
-                line=t.line,
+                line=expr.line if hasattr(expr, 'line') else 0,
             )
 
-        args = self.parse_argument_list()
-        return FunctionCall(Identifier(name, line=t.line), args, line=t.line)
+        if isinstance(expr, (Property, Index)):
+            if self._is_call_arg_start(self.peek()):
+                args = self.parse_argument_list()
+            else:
+                args = []
+            expr = FunctionCall(expr, args, line=expr.line if hasattr(expr, 'line') else 0)
+
+        return expr
 
     def parse_argument_list(self):
         args = []
         if self.peek().type in (TOKEN_NEWLINE, TOKEN_DEDENT, TOKEN_EOF):
             return args
-        while True:
-            expr = self.parse_expression()
-            args.append(expr)
-            if self._is_call_arg_start(self.peek()):
-                continue
-            if self.peek().type == TOKEN_COMMA:
-                self.advance()
-                continue
-            break
+        self._call_depth += 1
+        try:
+            while True:
+                self._call_depth -= 1
+                try:
+                    expr = self.parse_expression()
+                finally:
+                    self._call_depth += 1
+                args.append(expr)
+                if self._call_depth <= 1 and self._is_call_arg_start(self.peek()):
+                    continue
+                if self.peek().type == TOKEN_COMMA:
+                    self.advance()
+                    continue
+                break
+        finally:
+            self._call_depth -= 1
         return args
 
     def parse_if_statement(self):
@@ -214,13 +233,25 @@ class Parser:
         return While(condition, body, line=line)
 
     def parse_function_def(self):
-        line = self.advance().line
-        name_tok = self.expect(TOKEN_IDENTIFIER)
-        name = name_tok.value
+        line = self.peek().line
+        if self.peek().type == TOKEN_KEYWORD and self.peek().value == 'def':
+            self.advance()
+        name_tok = self.peek()
+        if name_tok.type == TOKEN_IDENTIFIER:
+            name = self.advance().value
+        elif name_tok.type == TOKEN_KEYWORD and name_tok.value in _METHOD_NAME_KEYWORDS:
+            self.advance()
+            name = name_tok.value
+        else:
+            self.error(f"期望函数名，实际得到 {name_tok.type}（{name_tok.value!r}）")
         params = []
-        while self.peek().type == TOKEN_IDENTIFIER:
+        while self.peek().type == TOKEN_IDENTIFIER or (
+            self.peek().type == TOKEN_KEYWORD and self.peek().value in _PARAM_NAME_KEYWORDS
+        ):
             param_tok = self.advance()
             params.append(Identifier(param_tok.value, line=param_tok.line))
+            if self.peek().type == TOKEN_COMMA:
+                self.advance()
         self.expect(TOKEN_NEWLINE)
         body = self.parse_block()
         return FunctionDef(name, params, body, line=line)
@@ -293,23 +324,33 @@ class Parser:
         line = self.advance().line
         lang_tok = self.expect(TOKEN_IDENTIFIER)
         lang = lang_tok.value
-        self.expect(TOKEN_LBRACKET)
+        self.expect(TOKEN_LBRACE)
         self.skip_newlines()
-        body_lines = []
+        body_parts = []
         depth = 1
         while self.peek().type != TOKEN_EOF and depth > 0:
-            if self.peek().type == TOKEN_LBRACKET:
+            if self.peek().type == TOKEN_LBRACE:
                 depth += 1
-            elif self.peek().type == TOKEN_RBRACKET:
+            elif self.peek().type == TOKEN_RBRACE:
                 depth -= 1
                 if depth == 0:
                     break
-            body_lines.append(self.advance().value if self.peek().value is not None else '')
-        self.expect(TOKEN_RBRACKET)
-        self.expect(TOKEN_DOT)
-        after_call = self.expect(TOKEN_IDENTIFIER)
-        # Cross-language block, parse as expression that returns the result
-        return CrossLangBlock(lang, '\n'.join(body_lines), line=line)
+            tok = self.advance()
+            if tok.type == TOKEN_NEWLINE:
+                body_parts.append('\n')
+            elif tok.type == TOKEN_INDENT:
+                pass
+            elif tok.type == TOKEN_DEDENT:
+                pass
+            else:
+                body_parts.append(str(tok.value) if tok.value is not None else '')
+                body_parts.append(' ')
+        self.expect(TOKEN_RBRACE)
+        if self.peek().type == TOKEN_DOT:
+            self.advance()
+            if self.peek().type == TOKEN_IDENTIFIER:
+                self.advance()
+        return CrossLangBlock(lang, ''.join(body_parts).strip(), line=line)
 
     def parse_block(self):
         statements = []
@@ -369,7 +410,6 @@ class Parser:
             }
             right = self.parse_set_op()
             left = BinaryOp(left, op_map[op.type], right, line=left.line if hasattr(left, 'line') else 0)
-        # Handle 'in'
         if self.peek().type == TOKEN_KEYWORD and self.peek().value == 'in':
             self.advance()
             right = self.parse_set_op()
@@ -439,7 +479,7 @@ class Parser:
     def _is_call_arg_start(self, tok):
         if tok.type in (TOKEN_NUMBER, TOKEN_STRING, TOKEN_IDENTIFIER, TOKEN_LPAREN, TOKEN_LBRACKET):
             return True
-        if tok.type == TOKEN_KEYWORD and tok.value in ('true', 'false', 'null', 'fn'):
+        if tok.type == TOKEN_KEYWORD and tok.value in ('true', 'false', 'null', 'fn', 'not', 'self'):
             return True
         return False
 
@@ -454,7 +494,11 @@ class Parser:
                 args = []
                 if self.peek().type != TOKEN_RPAREN:
                     while True:
-                        args.append(self.parse_expression())
+                        self._call_depth += 1
+                        try:
+                            args.append(self.parse_expression())
+                        finally:
+                            self._call_depth -= 1
                         if self.peek().type == TOKEN_COMMA:
                             self.advance()
                         else:
@@ -473,11 +517,21 @@ class Parser:
 
             if t.type == TOKEN_DOT:
                 self.advance()
-                prop = self.expect(TOKEN_IDENTIFIER)
-                left = Property(left, prop.value, line=left.line if hasattr(left, 'line') else 0)
+                prop_tok = self.peek()
+                if prop_tok.type == TOKEN_IDENTIFIER:
+                    prop = self.advance()
+                elif prop_tok.type == TOKEN_KEYWORD and prop_tok.value in _METHOD_NAME_KEYWORDS:
+                    prop = self.advance()
+                elif prop_tok.type == TOKEN_NUMBER:
+                    prop = self.advance()
+                elif prop_tok.type == TOKEN_STRING:
+                    prop = self.advance()
+                else:
+                    self.error(f"期望属性名，实际得到 {prop_tok.type}（{prop_tok.value!r}）")
+                left = Property(left, str(prop.value), line=left.line if hasattr(left, 'line') else 0)
                 continue
 
-            if isinstance(left, (Identifier, FunctionCall, Property, Index)) and self._is_call_arg_start(t):
+            if self._call_depth == 0 and isinstance(left, (Identifier, FunctionCall, Property, Index)) and self._is_call_arg_start(t):
                 args = self.parse_argument_list()
                 line = left.line if hasattr(left, 'line') else 0
                 left = FunctionCall(left, args, line=line)
@@ -497,6 +551,9 @@ class Parser:
         if t.type == TOKEN_STRING:
             return self._parse_string_with_interp(t.value, line)
 
+        if t.type == TOKEN_STRING_INTERP:
+            return StringInterp(t.value, line=line)
+
         if t.type == TOKEN_IDENTIFIER:
             return Identifier(t.value, line=line)
 
@@ -509,6 +566,8 @@ class Parser:
                 return Null(line=line)
             if t.value == 'fn':
                 return self.parse_lambda(line)
+            if t.value in _PARAM_NAME_KEYWORDS:
+                return Identifier(t.value, line=line)
 
         if t.type == TOKEN_LBRACKET:
             return self.parse_list_literal(line)
@@ -569,7 +628,32 @@ class Parser:
                             i += 1
                         else:
                             break
-                    parts.append(('interp_var', ''.join(var_chars)))
+                    # 支持属性访问和索引访问: /self.name /self.name[1]
+                    expr_chars = list(var_chars)
+                    while i < len(value):
+                        if value[i] == '.':
+                            expr_chars.append(value[i])
+                            i += 1
+                            while i < len(value) and (value[i].isalnum() or value[i] == '_'):
+                                expr_chars.append(value[i])
+                                i += 1
+                        elif value[i] == '[':
+                            expr_chars.append(value[i])
+                            i += 1
+                            bracket_depth = 1
+                            while i < len(value) and bracket_depth > 0:
+                                if value[i] == '[':
+                                    bracket_depth += 1
+                                elif value[i] == ']':
+                                    bracket_depth -= 1
+                                expr_chars.append(value[i])
+                                i += 1
+                        else:
+                            break
+                    if len(expr_chars) > len(var_chars):
+                        parts.append(('interp_expr', ''.join(expr_chars)))
+                    else:
+                        parts.append(('interp_var', ''.join(var_chars)))
                     continue
             buf.append(ch)
             i += 1
@@ -584,7 +668,9 @@ class Parser:
 
     def parse_lambda(self, line):
         params = []
-        while self.peek().type == TOKEN_IDENTIFIER:
+        while self.peek().type == TOKEN_IDENTIFIER or (
+            self.peek().type == TOKEN_KEYWORD and self.peek().value in _PARAM_NAME_KEYWORDS
+        ):
             param_tok = self.advance()
             params.append(Identifier(param_tok.value, line=param_tok.line))
         if self.peek().type == TOKEN_MINUS_MINUS:
@@ -630,19 +716,21 @@ class Parser:
             else:
                 break
 
+        if not is_dict and len(elements) == 1:
+            if self.peek().type == TOKEN_KEYWORD and self.peek().value == 'for':
+                self.advance()
+                var_tok = self.expect(TOKEN_IDENTIFIER)
+                var = Identifier(var_tok.value, line=var_tok.line)
+                kw = self.peek()
+                if kw.type == TOKEN_KEYWORD and kw.value == 'in':
+                    self.advance()
+                iterable = self.parse_expression()
+                self.expect(TOKEN_RBRACKET)
+                return ListComp(elements[0], var, iterable, line=line)
+
         self.expect(TOKEN_RBRACKET)
 
         if is_dict:
             return DictLiteral(entries, line=line)
-
-        if self.peek().type == TOKEN_KEYWORD and self.peek().value == 'for':
-            self.advance()
-            var_tok = self.expect(TOKEN_IDENTIFIER)
-            var = Identifier(var_tok.value, line=var_tok.line)
-            kw = self.peek()
-            if kw.type == TOKEN_KEYWORD and kw.value == 'in':
-                self.advance()
-            iterable = self.parse_expression()
-            return ListComp(elements[0] if elements else Null(), var, iterable, line=line)
 
         return ListLiteral(elements, line=line)

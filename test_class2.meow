@@ -1,0 +1,10 @@
+class Student
+    def init self, name, score
+        self.name = name
+        self.score = score
+
+    def show self
+        print "/self.name 考了 /self.score 分"
+
+s1 = Student "张三", 95
+s1.show

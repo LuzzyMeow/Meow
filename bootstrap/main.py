@@ -8,6 +8,7 @@ from .lexer import Lexer
 from .parser import Parser
 from .interpreter import Interpreter
 from .utils import MeowError, MeowRuntimeError
+from .environment import NULL_VALUE
 
 
 def run_file(filepath):
@@ -63,7 +64,7 @@ def run_repl():
             parser = Parser(tokens)
             ast = parser.parse()
             result = interpreter.interpret(ast)
-            if result is not None and result is not type('NULL', (), {'__repr__': lambda s: 'null'})():
+            if result is not None and result is not NULL_VALUE:
                 print(repr(result))
 
         except MeowError as e:
@@ -79,9 +80,8 @@ def run_repl():
 
 def main():
     if len(sys.argv) < 2:
-        print("用法: python -m bootstrap.main <file.meow>")
-        print("       python -m bootstrap.main        # 启动 REPL")
-        sys.exit(1)
+        run_repl()
+        return
 
     filepath = sys.argv[1]
     run_file(filepath)

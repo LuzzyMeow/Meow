@@ -5,6 +5,7 @@ TOKEN_KEYWORD = 'KEYWORD'
 TOKEN_IDENTIFIER = 'IDENTIFIER'
 TOKEN_NUMBER = 'NUMBER'
 TOKEN_STRING = 'STRING'
+TOKEN_STRING_INTERP = 'STRING_INTERP'
 TOKEN_INDENT = 'INDENT'
 TOKEN_DEDENT = 'DEDENT'
 TOKEN_NEWLINE = 'NEWLINE'
@@ -44,19 +45,19 @@ TOKEN_LPAREN = 'LPAREN'
 TOKEN_RPAREN = 'RPAREN'
 TOKEN_LBRACKET = 'LBRACKET'
 TOKEN_RBRACKET = 'RBRACKET'
+TOKEN_LBRACE = 'LBRACE'
+TOKEN_RBRACE = 'RBRACE'
 TOKEN_AT = 'AT'
 TOKEN_PIPE = 'PIPE'
 TOKEN_ARROW = 'ARROW'
 
 KEYWORDS = {
-    'if', 'elif', 'else', 'for', 'while',
-    'break', 'continue', 'def', 'return',
-    'class', 'init', 'self', 'super', 'interface', 'implements',
-    'import', 'from', 'as',
+    'if', 'elif', 'else', 'for', 'while', 'break', 'continue',
+    'def', 'return', 'class', 'extends', 'implements', 'init', 'self',
     'try', 'except', 'finally', 'raise', 'error',
-    'async', 'await', 'match', 'case',
-    'and', 'or', 'not', 'true', 'false',
-    'null', 'const', 'enum', 'extends', 'fn', 'in', 'all',
+    'import', 'from', 'as',
+    'true', 'false', 'null', 'fn', 'not', 'in', 'and', 'or',
+    'match', 'when',
 }
 
 _CHINESE_PUNCT_MAP = {
@@ -104,19 +105,18 @@ class Lexer:
         self.pos = 0
         self.line = 1
         self.column = 1
-        self.tokens = []
 
     def error(self, message):
         raise MeowError(message, self.line, self.column)
 
     def peek(self, offset=0):
         idx = self.pos + offset
-        if idx >= len(self.source):
-            return '\0'
-        return self.source[idx]
+        if idx < len(self.source):
+            return self.source[idx]
+        return '\0'
 
     def advance(self):
-        ch = self.source[self.pos]
+        ch = self.peek()
         self.pos += 1
         if ch == '\n':
             self.line += 1
@@ -126,280 +126,244 @@ class Lexer:
         return ch
 
     def skip_whitespace(self):
-        while self.pos < len(self.source) and self.peek() in (' ', '\t'):
+        while self.peek() in ' \t\r':
             self.advance()
 
-    def read_string(self, quote):
+    def read_string(self):
+        quote = self.advance()
+        start_line = self.line
+        start_col = self.column
         result = []
-        while self.pos < len(self.source):
-            ch = self.advance()
-            if ch == '\\':
-                esc = self.advance()
-                if esc == 'n':
-                    result.append('\n')
-                elif esc == 't':
-                    result.append('\t')
-                elif esc == '\\':
-                    result.append('\\')
-                elif esc == '"':
-                    result.append('"')
-                elif esc == "'":
-                    result.append("'")
-                else:
-                    result.append('\\' + esc)
-            elif ch == quote:
-                break
+        while self.peek() != quote:
+            if self.peek() == '\0':
+                self.error(f"未闭合的字符串，缺少 {quote}")
+            if self.peek() == '\\':
+                self.advance()
+                ch = self.advance()
+                escape_map = {'n': '\n', 't': '\t', 'r': '\r', '\\': '\\', '"': '"', "'": "'"}
+                result.append(escape_map.get(ch, ch))
+            elif self.peek() == '\n':
+                self.error("字符串不能跨行")
             else:
-                result.append(ch)
-        else:
-            self.error(f"未闭合的字符串，缺少 {quote}")
+                result.append(self.advance())
+        self.advance()
         return ''.join(result)
 
-    def read_number(self):
-        start = self.pos
-        is_float = False
-        while self.pos < len(self.source):
-            ch = self.peek()
-            if ch.isdigit():
+    def read_interp_string(self):
+        quote = self.advance()
+        start_line = self.line
+        start_col = self.column
+        parts = []
+        current = []
+        while self.peek() != quote:
+            if self.peek() == '\0':
+                self.error(f"未闭合的插值字符串，缺少 {quote}")
+            if self.peek() == '\\':
                 self.advance()
-            elif ch == '.' and not is_float:
-                next_ch = self.peek(1)
-                if next_ch.isdigit():
-                    is_float = True
-                    self.advance()
-                else:
-                    break
-            elif ch in ('e', 'E'):
-                is_float = True
+                ch = self.advance()
+                escape_map = {'n': '\n', 't': '\t', 'r': '\r', '\\': '\\', '"': '"', "'": "'"}
+                current.append(escape_map.get(ch, ch))
+            elif self.peek() == '$' and self.peek(1) == '{':
+                if current:
+                    parts.append(('str', ''.join(current)))
+                    current = []
                 self.advance()
-                if self.peek() in ('+', '-'):
-                    self.advance()
+                self.advance()
+                expr = []
+                depth = 1
+                while depth > 0 and self.peek() not in ('\0', '\n'):
+                    if self.peek() == '{':
+                        depth += 1
+                    elif self.peek() == '}':
+                        depth -= 1
+                        if depth == 0:
+                            break
+                    expr.append(self.advance())
+                if self.peek() != '}':
+                    self.error("插值表达式未闭合")
+                self.advance()
+                parts.append(('interp_expr', ''.join(expr)))
+            elif self.peek() == '$':
+                if current:
+                    parts.append(('str', ''.join(current)))
+                    current = []
+                self.advance()
+                var_name = []
+                while self.peek().isalnum() or self.peek() == '_':
+                    var_name.append(self.advance())
+                if not var_name:
+                    self.error("插值变量名不能为空")
+                parts.append(('interp_var', ''.join(var_name)))
+            elif self.peek() == '\n':
+                self.error("字符串不能跨行")
             else:
-                break
-        text = self.source[start:self.pos]
-        if text.startswith('0x') or text.startswith('0X'):
-            return int(text, 16)
-        if text.startswith('0b') or text.startswith('0B'):
-            return int(text, 2)
-        if is_float:
-            return float(text)
-        return int(text)
+                current.append(self.advance())
+        self.advance()
+        if current:
+            parts.append(('str', ''.join(current)))
+        return parts
+
+    def read_number(self):
+        num_str = []
+        has_dot = False
+        while self.peek().isdigit() or (self.peek() == '.' and not has_dot):
+            if self.peek() == '.':
+                has_dot = True
+            num_str.append(self.advance())
+        return float(''.join(num_str)) if has_dot else int(''.join(num_str))
 
     def read_identifier(self):
-        start = self.pos
-        while self.pos < len(self.source):
-            ch = self.peek()
-            if ch.isalnum() or ch == '_':
-                self.advance()
-            else:
-                break
-        word = self.source[start:self.pos]
-        return word
+        ident = []
+        while self.peek().isalnum() or self.peek() == '_':
+            ident.append(self.advance())
+        return ''.join(ident)
 
-    def map_chinese_punct(self, ch):
-        if ch in _CHINESE_PUNCT_MAP:
-            return _CHINESE_PUNCT_MAP[ch]
-        return ch
-
-    def tokenize_line(self, line_text, line_number):
-        saved_source = self.source
-        self.source = line_text
-        self.pos = 0
-        self.column = 1
+    def tokenize(self):
         tokens = []
+        indent_stack = [0]
+        pending_dedents = 0
+        at_line_start = True
 
         while self.pos < len(self.source):
-            ch = self.peek()
-
-            if ch in (' ', '\t'):
+            if not at_line_start:
                 self.skip_whitespace()
+            ch = self.peek()
+            line_number = self.line
+            col = self.column
+
+            if ch == '\0':
+                break
+
+            if ch == '\n':
+                self.advance()
+                at_line_start = True
+                tokens.append(Token(TOKEN_NEWLINE, None, line_number, col))
                 continue
 
             if ch == '#':
-                break
-
-            mapped = self.map_chinese_punct(ch)
-
-            col = self.column
-
-            if ch in _CHINESE_OPEN_PUNCT:
-                mapped = '(' if ch in ('\uff08',) else '['
-            elif ch in _CHINESE_CLOSE_PUNCT:
-                mapped = ')' if ch in ('\uff09',) else ']'
-
-            if mapped in ('"', "'"):
-                self.advance()
-                value = self.read_string(ch if ch in ('"', "'") else mapped)
-                tokens.append(Token(TOKEN_STRING, value, line_number, col))
+                while self.peek() not in ('\n', '\0'):
+                    self.advance()
                 continue
 
-            if mapped.isdigit() or (mapped == '.' and self.peek(1) and self.peek(1).isdigit()):
-                start = self.pos
-                self.advance()
-                num_text = mapped
-                while self.pos < len(self.source):
-                    nc = self.peek()
-                    nm = self.map_chinese_punct(nc)
-                    if nm.isdigit():
-                        num_text += nc
-                        self.advance()
-                    elif nm == '.' and not ('e' in num_text or 'E' in num_text):
-                        nn = self.peek(1)
-                        if nn and self.map_chinese_punct(nn).isdigit():
-                            num_text += nc
+            if at_line_start and ch != '\n':
+                at_line_start = False
+                indent = 0
+                while self.peek() == ' ':
+                    indent += 1
+                    self.advance()
+                if self.peek() == '\n' or self.peek() == '#':
+                    continue
+                if indent > indent_stack[-1]:
+                    indent_stack.append(indent)
+                    tokens.append(Token(TOKEN_INDENT, None, line_number, col))
+                elif indent < indent_stack[-1]:
+                    while indent < indent_stack[-1]:
+                        indent_stack.pop()
+                        tokens.append(Token(TOKEN_DEDENT, None, line_number, col))
+                    if indent != indent_stack[-1]:
+                        self.error(f"缩进层级不匹配，期望 {indent_stack[-1]} 空格，实际 {indent} 空格")
+                ch = self.peek()
+
+            if ch == '"' or ch == "'":
+                if self.peek(1) == ch and self.peek(2) == ch:
+                    self.advance()
+                    self.advance()
+                    self.advance()
+                    result = []
+                    while not (self.peek() == ch and self.peek(1) == ch and self.peek(2) == ch):
+                        if self.peek() == '\0':
+                            self.error("未闭合的三引号字符串")
+                        if self.peek() == '\\':
                             self.advance()
+                            esc = self.advance()
+                            escape_map = {'n': '\n', 't': '\t', 'r': '\r', '\\': '\\', '"': '"', "'": "'"}
+                            result.append(escape_map.get(esc, esc))
                         else:
-                            break
-                    elif nm in ('e', 'E') and not ('e' in num_text or 'E' in num_text):
-                        num_text += nc
-                        self.advance()
-                        nn = self.peek()
-                        if nn and self.map_chinese_punct(nn) in ('+', '-'):
-                            num_text += nn
-                            self.advance()
-                    else:
-                        break
-                if num_text.startswith('0x') or num_text.startswith('0X'):
-                    tokens.append(Token(TOKEN_NUMBER, int(num_text, 16), line_number, col))
-                elif num_text.startswith('0b') or num_text.startswith('0B'):
-                    tokens.append(Token(TOKEN_NUMBER, int(num_text, 2), line_number, col))
-                elif '.' in num_text or 'e' in num_text or 'E' in num_text:
-                    tokens.append(Token(TOKEN_NUMBER, float(num_text), line_number, col))
+                            result.append(self.advance())
+                    self.advance()
+                    self.advance()
+                    self.advance()
+                    tokens.append(Token(TOKEN_STRING, ''.join(result), line_number, col))
                 else:
-                    tokens.append(Token(TOKEN_NUMBER, int(num_text), line_number, col))
+                    str_val = self.read_string()
+                    tokens.append(Token(TOKEN_STRING, str_val, line_number, col))
                 continue
 
-            if mapped.isalpha() or mapped == '_':
-                word = mapped
+            if ch == '$' and (self.peek(1) == '"' or self.peek(1) == "'"):
                 self.advance()
-                while self.pos < len(self.source):
-                    nc = self.peek()
-                    nm = self.map_chinese_punct(nc)
-                    if nm.isalnum() or nm == '_':
-                        word += nc
-                        self.advance()
-                    else:
-                        break
-                if word in KEYWORDS:
-                    tokens.append(Token(TOKEN_KEYWORD, word, line_number, col))
-                else:
-                    tokens.append(Token(TOKEN_IDENTIFIER, word, line_number, col))
+                quote = self.peek()
+                parts = self.read_interp_string()
+                tokens.append(Token(TOKEN_STRING_INTERP, parts, line_number, col))
                 continue
 
-            if mapped == '=':
-                if self.peek(1) and self.map_chinese_punct(self.peek(1)) == '=':
-                    self.advance()
-                    self.advance()
-                    tokens.append(Token(TOKEN_EQEQ, '==', line_number, col))
-                else:
-                    self.advance()
-                    tokens.append(Token(TOKEN_EQ, '=', line_number, col))
+            if ch.isdigit():
+                num = self.read_number()
+                tokens.append(Token(TOKEN_NUMBER, num, line_number, col))
                 continue
 
-            if mapped == '!':
-                if self.peek(1) and self.map_chinese_punct(self.peek(1)) == '=':
-                    self.advance()
-                    self.advance()
-                    tokens.append(Token(TOKEN_BANGEQ, '!=', line_number, col))
+            if ch.isalpha() or ch == '_':
+                ident = self.read_identifier()
+                if ident in KEYWORDS:
+                    tokens.append(Token(TOKEN_KEYWORD, ident, line_number, col))
                 else:
-                    self.advance()
-                    tokens.append(Token(TOKEN_BANG, '!', line_number, col))
+                    tokens.append(Token(TOKEN_IDENTIFIER, ident, line_number, col))
                 continue
 
-            if mapped == '>':
-                if self.peek(1) and self.map_chinese_punct(self.peek(1)) == '=':
-                    self.advance()
-                    self.advance()
-                    tokens.append(Token(TOKEN_GTE, '>=', line_number, col))
-                else:
-                    self.advance()
-                    tokens.append(Token(TOKEN_GT, '>', line_number, col))
-                continue
-
-            if mapped == '<':
-                if self.peek(1) and self.map_chinese_punct(self.peek(1)) == '=':
-                    self.advance()
-                    self.advance()
-                    tokens.append(Token(TOKEN_LTE, '<=', line_number, col))
-                else:
-                    self.advance()
-                    tokens.append(Token(TOKEN_LT, '<', line_number, col))
-                continue
+            mapped = _CHINESE_PUNCT_MAP.get(ch, ch)
 
             if mapped == '+':
-                next_ch = self.peek(1)
-                nm2 = self.map_chinese_punct(next_ch) if next_ch else '\0'
-                if nm2 == '+':
-                    self.advance()
+                self.advance()
+                if self.peek() == '+':
                     self.advance()
                     tokens.append(Token(TOKEN_PLUS_PLUS, '++', line_number, col))
-                elif nm2 == '=':
-                    self.advance()
+                elif self.peek() == '=':
                     self.advance()
                     tokens.append(Token(TOKEN_PLUS_EQ, '+=', line_number, col))
                 else:
-                    self.advance()
                     tokens.append(Token(TOKEN_PLUS, '+', line_number, col))
                 continue
 
             if mapped == '-':
-                next_ch = self.peek(1)
-                nm2 = self.map_chinese_punct(next_ch) if next_ch else '\0'
-                if nm2 == '-':
-                    nnm = self.peek(2)
-                    nm3 = self.map_chinese_punct(nnm) if nnm else '\0'
-                    if nm3 == '/':
-                        self.advance()
-                        self.advance()
+                self.advance()
+                if self.peek() == '-':
+                    self.advance()
+                    if self.peek() == '/':
                         self.advance()
                         tokens.append(Token(TOKEN_MINUS_SLASH, '--/', line_number, col))
-                    elif nm3 == '=':
-                        self.advance()
-                        self.advance()
-                        self.advance()
-                        tokens.append(Token(TOKEN_MINUS_EQ, '-=', line_number, col))
                     else:
-                        self.advance()
-                        self.advance()
                         tokens.append(Token(TOKEN_MINUS_MINUS, '--', line_number, col))
-                elif nm2 == '=':
-                    self.advance()
+                elif self.peek() == '=':
                     self.advance()
                     tokens.append(Token(TOKEN_MINUS_EQ, '-=', line_number, col))
                 else:
-                    self.advance()
                     tokens.append(Token(TOKEN_MINUS, '-', line_number, col))
                 continue
 
             if mapped == '*':
-                next_ch = self.peek(1)
-                nm2 = self.map_chinese_punct(next_ch) if next_ch else '\0'
-                if nm2 == '*':
-                    self.advance()
+                self.advance()
+                if self.peek() == '*':
                     self.advance()
                     tokens.append(Token(TOKEN_DOUBLE_STAR, '**', line_number, col))
-                elif nm2 == '=':
-                    self.advance()
+                elif self.peek() == '=':
                     self.advance()
                     tokens.append(Token(TOKEN_STAR_EQ, '*=', line_number, col))
                 else:
-                    self.advance()
                     tokens.append(Token(TOKEN_STAR, '*', line_number, col))
                 continue
 
             if mapped == '/':
-                next_ch = self.peek(1)
-                nm2 = self.map_chinese_punct(next_ch) if next_ch else '\0'
-                if nm2 == '/':
+                self.advance()
+                if self.peek() == '/':
                     self.advance()
-                    self.advance()
-                    tokens.append(Token(TOKEN_DOUBLE_SLASH, '//', line_number, col))
-                elif nm2 == '=':
-                    self.advance()
+                    if self.peek() == '=':
+                        self.advance()
+                        tokens.append(Token(TOKEN_SLASH_EQ, '/=', line_number, col))
+                    else:
+                        tokens.append(Token(TOKEN_DOUBLE_SLASH, '//', line_number, col))
+                elif self.peek() == '=':
                     self.advance()
                     tokens.append(Token(TOKEN_SLASH_EQ, '/=', line_number, col))
                 else:
-                    self.advance()
                     tokens.append(Token(TOKEN_SLASH, '/', line_number, col))
                 continue
 
@@ -408,14 +372,59 @@ class Lexer:
                 tokens.append(Token(TOKEN_PERCENT, '%', line_number, col))
                 continue
 
-            if mapped == ',':
+            if mapped == '=':
                 self.advance()
-                tokens.append(Token(TOKEN_COMMA, ',', line_number, col))
+                if self.peek() == '=':
+                    self.advance()
+                    tokens.append(Token(TOKEN_EQEQ, '==', line_number, col))
+                else:
+                    tokens.append(Token(TOKEN_EQ, '=', line_number, col))
+                continue
+
+            if mapped == '!':
+                self.advance()
+                if self.peek() == '=':
+                    self.advance()
+                    tokens.append(Token(TOKEN_BANGEQ, '!=', line_number, col))
+                else:
+                    tokens.append(Token(TOKEN_BANG, '!', line_number, col))
+                continue
+
+            if mapped == '<':
+                self.advance()
+                if self.peek() == '=':
+                    self.advance()
+                    tokens.append(Token(TOKEN_LTE, '<=', line_number, col))
+                else:
+                    tokens.append(Token(TOKEN_LT, '<', line_number, col))
+                continue
+
+            if mapped == '>':
+                self.advance()
+                if self.peek() == '=':
+                    self.advance()
+                    tokens.append(Token(TOKEN_GTE, '>=', line_number, col))
+                else:
+                    tokens.append(Token(TOKEN_GT, '>', line_number, col))
+                continue
+
+            if mapped == '&':
+                self.advance()
+                if self.peek() == '&':
+                    self.advance()
+                    tokens.append(Token(TOKEN_AND_AND, '&&', line_number, col))
+                else:
+                    self.error(f"不支持的字符: {ch}")
                 continue
 
             if mapped == ':':
                 self.advance()
                 tokens.append(Token(TOKEN_COLON, ':', line_number, col))
+                continue
+
+            if mapped == ',':
+                self.advance()
+                tokens.append(Token(TOKEN_COMMA, ',', line_number, col))
                 continue
 
             if mapped == '.':
@@ -443,6 +452,16 @@ class Lexer:
                 tokens.append(Token(TOKEN_RBRACKET, ']', line_number, col))
                 continue
 
+            if mapped == '{':
+                self.advance()
+                tokens.append(Token(TOKEN_LBRACE, '{', line_number, col))
+                continue
+
+            if mapped == '}':
+                self.advance()
+                tokens.append(Token(TOKEN_RBRACE, '}', line_number, col))
+                continue
+
             if mapped == '@':
                 self.advance()
                 tokens.append(Token(TOKEN_AT, '@', line_number, col))
@@ -453,40 +472,20 @@ class Lexer:
                 tokens.append(Token(TOKEN_PIPE, '|', line_number, col))
                 continue
 
-            self.advance()
-
-        self.source = saved_source
-        return tokens
-
-    def tokenize(self):
-        lines = self.source.split('\n')
-        result = []
-        indent_stack = [0]
-
-        for i, line_text in enumerate(lines):
-            line_number = i + 1
-            stripped = line_text.lstrip()
-            if stripped == '' or stripped.startswith('#'):
+            if mapped == '-':
+                self.advance()
+                if self.peek() == '>':
+                    self.advance()
+                    tokens.append(Token(TOKEN_ARROW, '->', line_number, col))
+                else:
+                    tokens.append(Token(TOKEN_MINUS, '-', line_number, col))
                 continue
-            indent = len(line_text) - len(stripped)
-            if indent % 4 != 0:
-                pass
-            if indent > indent_stack[-1]:
-                indent_stack.append(indent)
-                result.append(Token(TOKEN_INDENT, None, line_number, 1))
-            elif indent < indent_stack[-1]:
-                while indent_stack and indent < indent_stack[-1]:
-                    indent_stack.pop()
-                    result.append(Token(TOKEN_DEDENT, None, line_number, 1))
-                if indent_stack and indent != indent_stack[-1]:
-                    raise MeowError(f"缩进层级不匹配，期望 {indent_stack[-1]} 空格，实际 {indent} 空格", line_number, 1)
-            line_tokens = self.tokenize_line(line_text.strip(), line_number)
-            result.extend(line_tokens)
-            result.append(Token(TOKEN_NEWLINE, None, line_number, len(line_text) + 1))
+
+            self.error(f"不支持的字符: {ch}")
 
         while len(indent_stack) > 1:
             indent_stack.pop()
-            result.append(Token(TOKEN_DEDENT, None, line_number, 1))
+            tokens.append(Token(TOKEN_DEDENT, None, self.line, self.column))
 
-        result.append(Token(TOKEN_EOF, None, line_number, 1))
-        return result
+        tokens.append(Token(TOKEN_EOF, None, self.line, self.column))
+        return tokens

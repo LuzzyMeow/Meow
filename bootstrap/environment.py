@@ -1,3 +1,27 @@
+from .utils import MeowRuntimeError
+
+
+class _NullValue:
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def __repr__(self):
+        return 'null'
+
+    def __str__(self):
+        return 'null'
+
+    def __bool__(self):
+        return False
+
+
+NULL_VALUE = _NullValue()
+
+
 class Environment:
     def __init__(self, parent=None):
         self.values = {}
@@ -11,7 +35,7 @@ class Environment:
             return self.values[name]
         if self.parent is not None:
             return self.parent.get(name)
-        raise NameError(f"未定义的变量: {name}")
+        raise MeowRuntimeError(f"未定义的变量: {name}")
 
     def set(self, name, value):
         if name in self.values:
@@ -20,7 +44,7 @@ class Environment:
         if self.parent is not None:
             self.parent.set(name, value)
             return
-        raise NameError(f"未定义的变量: {name}")
+        raise MeowRuntimeError(f"未定义的变量: {name}")
 
     def has(self, name):
         if name in self.values:
@@ -46,7 +70,7 @@ class MeowContinue(Exception):
     pass
 
 
-class MeowException(BaseException):
+class MeowException(Exception):
     def __init__(self, exc_name, message):
         self.exc_name = exc_name
         self.message = message
@@ -65,19 +89,26 @@ class MeowFunction:
 
     def call(self, interpreter, args):
         env = Environment(self.closure)
+        has_explicit_self = (
+            self.is_method and self.params
+            and (self.params[0].name if hasattr(self.params[0], 'name') else self.params[0]) == 'self'
+        )
+        if self.is_method and args:
+            env.define('self', args[0])
         for i, param in enumerate(self.params):
             param_name = param.name if hasattr(param, 'name') else param
-            if i < len(args):
-                env.define(param_name, args[i])
+            if has_explicit_self and i == 0 and param_name == 'self':
+                continue
+            arg_idx = i + (1 if self.is_method and not has_explicit_self else 0)
+            if arg_idx < len(args):
+                env.define(param_name, args[arg_idx])
             else:
-                env.define(param_name, None)
-        if self.is_method:
-            env.define('self', args[0] if args else None)
+                env.define(param_name, NULL_VALUE)
         old_env = interpreter.env
         interpreter.env = env
         try:
             interpreter.visit(self.body)
-            return None
+            return NULL_VALUE
         except MeowReturn as ret:
             return ret.value
         finally:
@@ -100,7 +131,7 @@ class MeowLambda:
             if i < len(args):
                 env.define(param_name, args[i])
             else:
-                env.define(param_name, None)
+                env.define(param_name, NULL_VALUE)
         old_env = interpreter.env
         interpreter.env = env
         try:
@@ -111,7 +142,7 @@ class MeowLambda:
             interpreter.env = old_env
 
     def __repr__(self):
-        return f"<MeowLambda>"
+        return "<MeowLambda>"
 
 
 class MeowClass:
@@ -149,7 +180,7 @@ class MeowInstance:
         method = self.cls.find_method(name)
         if method:
             return method
-        raise NameError(f"实例没有属性: {name}")
+        raise MeowRuntimeError(f"实例没有属性: {name}")
 
     def set(self, name, value):
         self.properties[name] = value
@@ -167,16 +198,16 @@ class MeowList:
 
     def pop(self, index=-1):
         if not self.items:
-            return None
+            return NULL_VALUE
         if isinstance(index, int) and index < 0:
             idx = len(self.items) + index
             if idx < 0:
-                return None
+                return NULL_VALUE
             return self.items.pop(idx)
         if isinstance(index, int) and index > 0:
             idx = index - 1
             if idx >= len(self.items):
-                return None
+                return NULL_VALUE
             return self.items.pop(idx)
         return self.items.pop()
 
@@ -194,30 +225,30 @@ class MeowList:
             idx = index - 1
             if 0 <= idx < len(self.items):
                 return self.items[idx]
-            raise IndexError(f"索引 {index} 超出范围，列表长度 {len(self.items)}")
+            raise MeowRuntimeError(f"索引 {index} 超出范围，列表长度 {len(self.items)}")
         if isinstance(index, int) and index < 0:
             idx = len(self.items) + index
             if 0 <= idx < len(self.items):
                 return self.items[idx]
-            raise IndexError(f"索引 {index} 超出范围，列表长度 {len(self.items)}")
+            raise MeowRuntimeError(f"索引 {index} 超出范围，列表长度 {len(self.items)}")
         if index == 0:
-            raise IndexError("Meow 索引从 1 开始")
-        raise IndexError(f"无效索引: {index}")
+            raise MeowRuntimeError("Meow 索引从 1 开始")
+        raise MeowRuntimeError(f"无效索引: {index}")
 
-    def set_item(self, index, value):
+    def set(self, index, value):
         if isinstance(index, int) and index > 0:
             idx = index - 1
             if 0 <= idx < len(self.items):
                 self.items[idx] = value
                 return
-            raise IndexError(f"索引 {index} 超出范围")
+            raise MeowRuntimeError(f"索引 {index} 超出范围")
         if isinstance(index, int) and index < 0:
             idx = len(self.items) + index
             if 0 <= idx < len(self.items):
                 self.items[idx] = value
                 return
-            raise IndexError(f"索引 {index} 超出范围")
-        raise IndexError(f"无效索引: {index}")
+            raise MeowRuntimeError(f"索引 {index} 超出范围")
+        raise MeowRuntimeError(f"无效索引: {index}")
 
     def to_list(self):
         return self.items
@@ -239,7 +270,7 @@ class MeowDict:
     def get(self, key):
         if key in self.data:
             return self.data[key]
-        return None
+        return NULL_VALUE
 
     def set(self, key, value):
         self.data[key] = value
@@ -253,6 +284,3 @@ class MeowDict:
     def __repr__(self):
         items = ', '.join(f"{k!r}: {v!r}" for k, v in self.data.items())
         return f"{{{items}}}"
-
-
-NULL_VALUE = object()

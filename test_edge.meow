@@ -1,0 +1,45 @@
+# 边界测试
+
+# 1. 空列表
+empty = []
+print empty
+
+# 2. 字典
+d = ["a": 1, "b": 2]
+print d
+
+# 3. 类测试
+class Animal
+    init name
+        self.name = name
+    def speak
+        print "I am " ++ self.name
+
+cat = Animal "Kitty"
+cat.speak
+
+# 4. 继承
+class Dog extends Animal
+    def speak
+        print "Woof! I am " ++ self.name
+
+dog = Dog "Buddy"
+dog.speak
+
+# 5. 异常处理
+try
+    print "try block"
+    raise MyError "something wrong"
+except e
+    print "caught"
+finally
+    print "finally"
+
+# 6. 列表推导
+squares = [x*x for x in range 1,5]
+print squares
+
+# 7. 跨语言调用
+import python {
+    x = 42
+}

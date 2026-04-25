@@ -1,5 +1,6 @@
 import sys
 import io
+import subprocess
 
 from .utils import MeowError
 
@@ -33,6 +34,22 @@ class CrossLangBridge:
                 imported_vars[key] = value
 
         return imported_vars
+
+    def _exec_shell(self, code, env):
+        try:
+            result = subprocess.run(
+                code, shell=True, capture_output=True, text=True, timeout=30
+            )
+            output = result.stdout.strip()
+            if result.returncode != 0:
+                raise MeowError(f"跨语言 Shell 执行错误 (退出码 {result.returncode}): {result.stderr.strip()}")
+            return output
+        except subprocess.TimeoutExpired:
+            raise MeowError("跨语言 Shell 执行超时 (30秒)")
+        except MeowError:
+            raise
+        except Exception as e:
+            raise MeowError(f"跨语言 Shell 执行错误: {e}")
 
     def share_variable(self, name, value):
         self.shared_vars[name] = value
