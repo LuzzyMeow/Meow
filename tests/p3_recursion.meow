@@ -1,0 +1,51 @@
+# ============================================
+# Phase 3: 递归深化测试
+# ============================================
+
+# =====================
+# FN-18: 阶乘
+# =====================
+def factorial n
+    if n <= 1
+        return 1
+    return n * factorial (n - 1)
+
+print factorial 1
+print factorial 5
+print factorial 10
+
+# =====================
+# FN-19: 斐波那契
+# =====================
+def fib n
+    if n <= 0
+        return 0
+    if n == 1
+        return 1
+    return fib(n - 1) + fib(n - 2)
+
+print fib 0
+print fib 1
+print fib 10
+
+# =====================
+# FN-20: 递归深度限制
+# =====================
+def deep_rec n
+    if n <= 0
+        return "done"
+    return deep_rec (n - 1)
+
+print deep_rec 50
+
+# =====================
+# 补充: 递归累加
+# =====================
+def sum_to n
+    if n <= 0
+        return 0
+    return n + sum_to (n - 1)
+
+print sum_to 10
+
+print "--- p3_recursion done ---"
