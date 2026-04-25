@@ -116,5 +116,50 @@ python -m bootstrap.main test_debug.meow         # ✅
 - `bootstrap/lexer.py` — `--/` 运算符优先级修复
 - `bootstrap/environment.py` — `MeowFunction.call` 的 `self` 参数绑定逻辑重构
 
+---
+
+## v0.1.0 — Phase 0 奠基阶段完成
+
+**日期**: 2026-04-25
+**状态**: ✅ 完成
+**Git Tag**: [v0.1.0](https://github.com/LuzzyMeow/Meow/releases/tag/v0.1.0)
+
+### 任务内容
+阶段 8：收尾与发布 — 整理测试用例、更新 README、发布 v0.1.0 版本。
+
+### 实现情况
+- 将根目录的 8 个测试文件整理到 `tests/` 目录：`class.meow`, `class2.meow`, `data.meow`, `debug.meow`, `edge.meow`, `edge2.meow`, `listcomp.meow`, `try.meow`
+- 更新 `README.md`：
+  - 版本声明更新为 v0.1.0 Alpha
+  - 补充快速开始指南（安装、REPL、运行测试）
+  - 新增"已实现的语言特性"章节，包含基础语法、控制流、函数、数据结构、类、异常、跨语言调用的完整示例
+  - 更新路线图：Phase 0 标记为已完成，补充 Phase 0 完成详情表格
+- 创建 Git 标签 `v0.1.0`，附详细发布说明
+
+### 测试方法
+全部 12 个测试文件通过验证：
+
+```bash
+python -m bootstrap.main tests/hello.meow        # ✅
+python -m bootstrap.main tests/variables.meow    # ✅
+python -m bootstrap.main tests/control_flow.meow # ✅
+python -m bootstrap.main tests/functions.meow    # ✅
+python -m bootstrap.main tests/data.meow          # ✅
+python -m bootstrap.main tests/listcomp.meow      # ✅
+python -m bootstrap.main tests/try.meow           # ✅
+python -m bootstrap.main tests/edge.meow          # ✅
+python -m bootstrap.main tests/edge2.meow         # ✅
+python -m bootstrap.main tests/class.meow         # ✅
+python -m bootstrap.main tests/class2.meow        # ✅
+python -m bootstrap.main tests/debug.meow         # ✅
+```
+
+### 提交记录
+- 提交 `9223b06`: `chore(release): v0.1.0 发布`
+- 标签 `v0.1.0`: Meow 语言种子解释器 v0.1.0 Alpha
+
 ### 下一步
-- 阶段 8：收尾发布 — 完整测试套件、README 更新、v0.1.0 版本发布
+- **Phase 1 自举**：用 Meow 语言自身重写解释器
+- 接口（interface/implements）
+- 泛型支持
+- 异步编程（async/await）
