@@ -12,7 +12,7 @@
 
 </div>
 
-> **本项目尚在开发中，所有功能均未完整实现。本文档展示的语法特性为设计规范，当前种子解释器仅支持最基础语法。请勿用于生产环境。**
+> **当前版本：v0.1.0 Alpha** — 种子解释器已完成阶段 0-7 的核心功能开发，支持变量、控制流、函数、类、异常处理和跨语言调用。仍在活跃开发中，请勿用于生产环境。
 
 ---
 
@@ -91,35 +91,157 @@ cv::Mat img = cv::imread("photo.jpg");
 
 > 你不是在"嵌入"其他语言——你是在 **Meow 中直接使用它们**，像使用 Meow 标准库一样自然。
 
-### 常规语法
+### 已实现的语言特性
 
-当然，Meow 本身也是一门合格的通用编程语言：
+Meow 种子解释器（v0.1.0）已支持以下核心语法：
+
+#### 基础语法
 
 ```meow
-// 变量
+# 变量与字面量
 name = "Alice"
 age = 30
+pi = 3.14
+flag = true
+nothing = null
 
-// 函数
-def greet name
-    print "你好，/name！"
+# 算术与逻辑运算
+result = 10 + 5 * 2
+is_valid = age > 18 and name != ""
 
-greet name
-
-// 类
-class Student
-    def init self, name, score
-        self.name = name
-        self.score = score
-
-    def show self
-        print "/self.name 考了 /self.score 分"
-
-s1 = Student "张三", 95
-s1.show
+# 字符串插值
+print "你好，/name！"
+print "1 + 1 = /(1 + 1)"
 ```
 
-> 语法极简——缩进即结构，一行一条语句，索引从 1 开始。更多的语法细节请参考 [基础语法设计规范](docs/Meow%20语言基础语法设计与规范.md)。
+#### 控制流
+
+```meow
+# if / elif / else
+if score >= 90
+    print "A"
+elif score >= 60
+    print "B"
+else
+    print "C"
+
+# for 循环（range 和列表遍历）
+for i in range 1, 10
+    print i
+
+items = [10, 20, 30]
+for item in items
+    print item
+
+# while 循环
+while count > 0
+    print count
+    count -= 1
+
+# break / continue
+for i in range 1, 100
+    if i > 5
+        break
+    if i % 2 == 0
+        continue
+    print i
+```
+
+#### 函数
+
+```meow
+# 命名函数
+def add a, b
+    return a + b
+
+print add 3, 5
+
+# 无括号调用
+print "Hello, Meow!"
+
+# Lambda 匿名函数
+square = fn x -- x * x
+print square 4
+
+# 闭包
+def make_counter
+    count = 0
+    return fn --
+        count += 1
+        return count
+
+counter = make_counter
+print counter
+print counter
+```
+
+#### 数据结构
+
+```meow
+# 列表
+nums = [1, 2, 3, 4, 5]
+nums.add 6
+print nums.1
+print nums.length
+
+# 列表推导
+squares = [x * x for x in range 1, 6]
+
+# 字典
+person = ["name": "Alice", "age": 30]
+print person["name"]
+```
+
+#### 类与对象
+
+```meow
+class Animal
+    def init self, name
+        self.name = name
+
+    def speak self
+        print "/self.name makes a sound"
+
+class Dog extends Animal
+    def speak self
+        print "/self.name barks"
+
+cat = Animal "Kitty"
+cat.speak
+
+dog = Dog "Buddy"
+dog.speak
+```
+
+#### 异常处理
+
+```meow
+try
+    risky_operation
+except MyError as e
+    print "caught: /e.message"
+finally
+    print "cleanup"
+
+# 自定义异常
+error MyError
+
+# 抛出异常
+raise MyError "something went wrong"
+```
+
+#### 跨语言调用
+
+```meow
+import python
+{
+import math
+result = math.sqrt(16)
+}.python
+print result
+```
+
+> 更多语法细节请参考 [基础语法设计规范](docs/Meow%20语言基础语法设计与规范.md)。
 
 ---
 
@@ -223,22 +345,44 @@ ResultSet rs = stmt.executeQuery("SELECT * FROM users");
 
 ## 快速开始
 
+### 安装与运行
+
 ```bash
 git clone https://github.com/your-username/Meow.git
 cd Meow
-python bootstrap/main.py tests/hello.meow
+python -m bootstrap.main tests/hello.meow
 ```
 
-**第一行 Meow 代码** (`hello.meow`)：
+**第一行 Meow 代码** (`tests/hello.meow`)：
 
-```
+```meow
 print "你好，世界！"
 ```
 
-**运行**：
+**REPL 交互式解释器**：
 
 ```bash
-python bootstrap/main.py hello.meow
+python -m bootstrap.main
+> print "Hello, Meow!"
+Hello, Meow!
+> 1 + 2
+3
+> exit
+```
+
+### 运行测试套件
+
+```bash
+# 运行全部测试
+python -m bootstrap.main tests/hello.meow
+python -m bootstrap.main tests/variables.meow
+python -m bootstrap.main tests/control_flow.meow
+python -m bootstrap.main tests/functions.meow
+python -m bootstrap.main tests/data.meow
+python -m bootstrap.main tests/listcomp.meow
+python -m bootstrap.main tests/class.meow
+python -m bootstrap.main tests/try.meow
+python -m bootstrap.main tests/edge.meow
 ```
 
 ---
@@ -274,10 +418,24 @@ Meow/
 
 | 阶段 | 目标 | 状态 |
 |------|------|------|
-| **Phase 0** 奠基 | 语法规范定稿 + Python 种子解释器 + 跨 Python 调用原型 | 进行中 |
-| **Phase 1** 自举 | Meow 自身重写解释器 + 面向对象/异常/泛型/异步 | 规划中 |
+| **Phase 0** 奠基 | 语法规范定稿 + Python 种子解释器 + 跨 Python 调用原型 | ✅ 已完成 |
+| **Phase 1** 自举 | Meow 自身重写解释器 + 接口/泛型/异步 | 规划中 |
 | **Phase 2** 性能 | JIT 编译 + 标准库完善 + 包管理器 `purr` + 中央仓库 | 规划中 |
 | **Phase 3** 生态 | IDE 插件、LSP、企业案例、社区驱动跨语言包封装 | 规划中 |
+
+### Phase 0 完成详情
+
+| 功能模块 | 状态 | 测试文件 |
+|----------|------|----------|
+| 变量与表达式 | ✅ | `tests/variables.meow` |
+| 控制流 (if/for/while/break/continue) | ✅ | `tests/control_flow.meow` |
+| 函数 (def/return/lambda/闭包) | ✅ | `tests/functions.meow` |
+| 列表与字典 | ✅ | `tests/data.meow` |
+| 列表推导 | ✅ | `tests/listcomp.meow` |
+| 类与继承 | ✅ | `tests/class.meow`, `tests/class2.meow` |
+| 异常处理 | ✅ | `tests/try.meow` |
+| 跨语言调用 (Python) | ✅ | `tests/edge.meow`, `tests/edge2.meow` |
+| REPL 交互式解释器 | ✅ | - |
 
 ### 成功指标
 
