@@ -91,14 +91,14 @@ python -m bootstrap.main tests/hello.meow        # ✅
 python -m bootstrap.main tests/variables.meow    # ✅
 python -m bootstrap.main tests/control_flow.meow # ✅
 python -m bootstrap.main tests/functions.meow    # ✅
-python -m bootstrap.main test_data.meow          # ✅
-python -m bootstrap.main test_listcomp.meow      # ✅
-python -m bootstrap.main test_try.meow           # ✅
-python -m bootstrap.main test_edge.meow          # ✅
-python -m bootstrap.main test_edge2.meow         # ✅
-python -m bootstrap.main test_class.meow         # ✅
-python -m bootstrap.main test_class2.meow        # ✅
-python -m bootstrap.main test_debug.meow         # ✅
+python -m bootstrap.main tests/data.meow         # ✅
+python -m bootstrap.main tests/listcomp.meow     # ✅
+python -m bootstrap.main tests/try.meow          # ✅
+python -m bootstrap.main tests/edge.meow         # ✅
+python -m bootstrap.main tests/edge2.meow        # ✅
+python -m bootstrap.main tests/class.meow        # ✅
+python -m bootstrap.main tests/class2.meow       # ✅
+python -m bootstrap.main tests/debug.meow        # ✅
 ```
 
 ### 遇到的错误与解决
@@ -144,14 +144,14 @@ python -m bootstrap.main tests/hello.meow        # ✅
 python -m bootstrap.main tests/variables.meow    # ✅
 python -m bootstrap.main tests/control_flow.meow # ✅
 python -m bootstrap.main tests/functions.meow    # ✅
-python -m bootstrap.main tests/data.meow          # ✅
-python -m bootstrap.main tests/listcomp.meow      # ✅
-python -m bootstrap.main tests/try.meow           # ✅
-python -m bootstrap.main tests/edge.meow          # ✅
-python -m bootstrap.main tests/edge2.meow         # ✅
-python -m bootstrap.main tests/class.meow         # ✅
-python -m bootstrap.main tests/class2.meow        # ✅
-python -m bootstrap.main tests/debug.meow         # ✅
+python -m bootstrap.main tests/data.meow         # ✅
+python -m bootstrap.main tests/listcomp.meow     # ✅
+python -m bootstrap.main tests/try.meow          # ✅
+python -m bootstrap.main tests/edge.meow         # ✅
+python -m bootstrap.main tests/edge2.meow        # ✅
+python -m bootstrap.main tests/class.meow        # ✅
+python -m bootstrap.main tests/class2.meow       # ✅
+python -m bootstrap.main tests/debug.meow        # ✅
 ```
 
 ### 提交记录
